@@ -3,6 +3,7 @@
     "description": "Async Stream IPC for PHP – Lightweight AMPHP powered library enabling high-throughput, zero-dependency inter-process communication over stdio and standard streams.",
     "type": "library",
     "license": "MIT",
+    "keywords": ["php", "ipc", "async", "amp", "stream", "amphp", "stdio", "inter-process-communication", "fast"],
     "autoload": {
         "psr-4": {
             "PhpStreamIpc\\": "src/"

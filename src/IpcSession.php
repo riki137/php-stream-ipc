@@ -3,78 +3,180 @@ declare(strict_types=1);
 
 namespace PhpStreamIpc;
 
+use Amp\Cancellation;
+use Amp\CancelledException;
+use Amp\CompositeCancellation;
+use Amp\DeferredCancellation;
+use Amp\DeferredFuture;
 use Amp\Future;
+use Amp\TimeoutCancellation;
+use Amp\TimeoutException;
+use Closure;
 use PhpStreamIpc\Message\Message;
+use PhpStreamIpc\Envelope\RequestEnvelope;
+use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
+use PhpStreamIpc\Envelope\ResponseEnvelope;
+use PhpStreamIpc\Transport\MessageCommunicator;
+use Throwable;
+use function Amp\async;
+use function Amp\delay;
 
-/**
- * Common interface for an IPC session (sync or async).
- *
- * Provides methods to:
- *  - fire-and-forget notifications,
- *  - send requests and await responses,
- *  - register/unregister handlers for incoming messages.
- *
- * Implementations must respect configured timeouts and propagate errors
- * (e.g. TimeoutException when a request exceeds its deadline).
- */
-interface IpcSession
+class IpcSession
 {
-    /**
-     * Send a fire-and-forget notification to the peer.
-     *
-     * Notifications do not expect any reply.
-     *
-     * @param Message $msg The payload to send.
-     */
-    public function notify(Message $msg): void;
+    private array $messageHandlers = [];
+    private array $requestHandlers = [];
+    private array $pendingResponses = [];
+    private array $timeouts = [];
+    private readonly DeferredCancellation $defCancellation;
+    private readonly Cancellation $cancellation;
+    private Future $loop;
 
-    /**
-     * Send a request and receive a Future resolving to the response.
-     *
-     * The returned Future will complete with the peer’s response Message,
-     * or fail with a TimeoutException if no response arrives in time.
-     *
-     * @param Message $msg The request payload.
-     * @return Future<Message> Future resolving to the response.
-     * @throws \Amp\TimeoutException If the response is not received within the timeout.
-     */
-    public function request(Message $msg): Future;
+    public function __construct(
+        private readonly MessageCommunicator $comm,
+        private readonly RequestIdGenerator $idGen,
+        private readonly float $timeout
+    ) {
+        $this->defCancellation = new DeferredCancellation();
+        $this->cancellation = $this->defCancellation->getCancellation();
+        $this->cancellation->subscribe(function (Throwable $e): void {
+            foreach ($this->pendingResponses as $d) {
+                $d->error($e);
+            }
+            foreach ($this->timeouts as $t) {
+                $t->cancel();
+            }
+        });
+        $this->loop = async(function () {
+            while (true) {
+                $this->tick($this->cancellation);
+            }
+        });
+    }
 
-    /**
-     * Register a handler for incoming notifications.
-     *
-     * Handlers are invoked for any message that is neither a request
-     * nor a response to an outstanding request.
-     *
-     * @param \Closure(Message $message, IpcSession $session): void $handler
-     *        Callback receiving the message and session.
-     */
-    public function onMessage(\Closure $handler): void;
+    public function notify(Message $msg): void
+    {
+        $this->comm->send($msg);
+    }
 
-    /**
-     * Unregister a previously registered notification handler.
-     *
-     * @param \Closure(Message $message, IpcSession $session): void $handler
-     *        The handler to remove.
-     */
-    public function offMessage(\Closure $handler): void;
+    public function request(Message $msg, ?Cancellation $cancellation = null): Future
+    {
+        $cancel = $cancellation !== null
+            ? new CompositeCancellation($cancellation, $this->cancellation)
+            : $this->cancellation;
 
-    /**
-     * Register a handler for incoming requests.
-     *
-     * The first handler that returns a non-null Message will have its
-     * return value sent back as the response. Returning null means “I don’t handle this.”
-     *
-     * @param \Closure(Message $request, IpcSession $session): ?Message $handler
-     *        Callback that returns a response Message or null.
-     */
-    public function onRequest(\Closure $handler): void;
+        $id = $this->idGen->generate();
+        $this->comm->send(new RequestEnvelope($id, $msg));
 
-    /**
-     * Unregister a previously registered request handler.
-     *
-     * @param \Closure(Message $request, IpcSession $session): ?Message $handler
-     *        The handler to remove.
-     */
-    public function offRequest(\Closure $handler): void;
+        $deferred = new DeferredFuture();
+        $this->pendingResponses[$id] = $deferred;
+
+        $timerCancel = new DeferredCancellation();
+        $this->timeouts[$id] = $timerCancel;
+
+        async(function () use ($id, $timerCancel, $cancel) {
+            delay($this->timeout, true, $cancel);
+            if (isset($this->pendingResponses[$id])) {
+                $this->pendingResponses[$id]->error(new TimeoutException('Request timed out'));
+                unset($this->pendingResponses[$id], $this->timeouts[$id]);
+            }
+        });
+
+        return $deferred->getFuture();
+    }
+
+    public function receive(?Cancellation $cancellation = null): Future
+    {
+        $cancel = $cancellation !== null
+            ? new CompositeCancellation($cancellation, $this->cancellation)
+            : $this->cancellation;
+
+        $deferred = new DeferredFuture();
+
+        $cancelId = $cancel->subscribe(function (Throwable $e) use ($deferred, $handler) {
+            $this->offMessage($handler);
+            if (!$deferred->isComplete()) {
+                $deferred->error($e);
+            }
+        });
+        $handler = function (Message $msg) use ($cancel, $cancelId, $deferred, &$handler) {
+            $this->offMessage($handler);
+            $cancel->unsubscribe($cancelId);
+            $deferred->complete($msg);
+        };
+
+        $this->onMessage($handler);
+
+        return $deferred->getFuture();
+    }
+
+    public function onMessage(Closure $handler): void
+    {
+        $this->messageHandlers[] = $handler;
+    }
+
+    public function offMessage(Closure $handler): void
+    {
+        foreach ($this->messageHandlers as $i => $h) {
+            if (spl_object_id($h) === spl_object_id($handler)) {
+                unset($this->messageHandlers[$i]);
+                return;
+            }
+        }
+    }
+
+    public function onRequest(Closure $handler): void
+    {
+        $this->requestHandlers[] = $handler;
+    }
+
+    public function offRequest(Closure $handler): void
+    {
+        foreach ($this->requestHandlers as $i => $h) {
+            if (spl_object_id($h) === spl_object_id($handler)) {
+                unset($this->requestHandlers[$i]);
+                return;
+            }
+        }
+    }
+
+    public function tick(?Cancellation $cancellation = null): void
+    {
+        $cancel = $cancellation !== null
+            ? new CompositeCancellation($cancellation, $this->cancellation)
+            : $this->cancellation;
+
+        $envelope = $this->comm->read($cancel);
+
+        if ($envelope instanceof RequestEnvelope) {
+            foreach ($this->requestHandlers as $h) {
+                $resp = $h($envelope->request, $this);
+                if ($resp instanceof Message) {
+                    $this->comm->send(new ResponseEnvelope($envelope->id, $resp));
+                    break;
+                }
+            }
+            return;
+        }
+
+        if ($envelope instanceof ResponseEnvelope) {
+            $id = $envelope->id;
+            if (isset($this->pendingResponses[$id])) {
+                $this->pendingResponses[$id]->complete($envelope->response);
+                $this->timeouts[$id]->cancel();
+                unset($this->pendingResponses[$id], $this->timeouts[$id]);
+            }
+            return;
+        }
+
+        foreach ($this->messageHandlers as $h) {
+            $h($envelope, $this);
+        }
+    }
+
+    public function close(): void
+    {
+        $this->defCancellation->cancel();
+        $this->loop->await();
+    }
+
 }

@@ -1,145 +1,175 @@
-# Async Stream IPC for PHP  
-Lightweight, high-throughput, single-dependency (AMPHP) inter-process communication via STDIO or any PHP stream.
+# php-stream-ipc – Asynchronous Stream IPC for PHP
 
-Built for efficiency and developer joy. Runs on [amphp](https://amphp.org/) with a clean interface for async and sync scenarios.
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)  
+[![Packagist Version](https://img.shields.io/packagist/v/riki137/php-stream-ipc)](https://packagist.org/packages/riki137/php-stream-ipc)  
+[![PHP 8.2+](https://img.shields.io/badge/php-^8.2-8892BF.svg)](https://www.php.net/)  
 
-## ✨ Features
+Asynchronous, dependency-free AMPHP-based library for high-throughput, low-latency inter-process communication over stdio, sockets and custom streams.
 
-- 🔄 Bi-directional request/response support with automatic timeout handling
-- 📣 One-way notifications (fire-and-forget)
-- 🧵 Works with any stream (stdio, pipes, sockets, etc.)
-- 🧠 Full async and sync support via pluggable session types
-- 🧩 Flexible message serialization (native PHP or JSON)
-- 🧪 Zero dependencies outside of AMPHP libraries
+## Features
+- **Zero dependencies**: ships without extra PHP extensions
+- **High throughput**: leverages AMPHP's event loop
+- **Low latency**: optimized for performance
+- **Flexible transports**: stdio, sockets, custom streams
+- **Patterns supported**: request–response, notifications, broadcast
 
----
+## Requirements
+- PHP ^8.2
+- amphp/amp ^3.1
 
-## 💡 Use Case
-
-Need to spawn a child PHP process and talk to it over `STDIN`/`STDOUT` using structured messages? `php-stream-ipc` lets you:
-
-- Send structured messages with auto-generated request IDs
-- Handle incoming notifications or requests with your own logic
-- Compose high-level protocols without boilerplate
-
----
-
-## 🚀 Quick Start
-
-#### 1. Install
-
+## Installation
 ```bash
 composer require riki137/php-stream-ipc
 ```
 
+## Example: Master ↔ Multiple Slaves (Request–Response)
+
+In this example, a **master** process dispatches named-jobs to multiple **slave** processes and collects their results, all over stdio.
+
 ---
 
-#### 2. Define Your Messages
+### 1. Define your messages
 
-All messages must implement the `PhpStreamIpc\Message\Message` interface.
+Put these in, for example, `src/Message/TaskRequest.php` and `src/Message/TaskResponse.php`:
 
 ```php
+<?php
+declare(strict_types=1);
+
+namespace App\Message;
+
 use PhpStreamIpc\Message\Message;
 
-final class SayHello implements Message {
-    public function __construct(public string $name) {}
+final class TaskRequest implements Message
+{
+    public function __construct(public string $job) {}
+}
+```
+
+```php
+<?php
+declare(strict_types=1);
+
+namespace App\Message;
+
+use PhpStreamIpc\Message\Message;
+
+final class TaskResponse implements Message
+{
+    public function __construct(public string $result) {}
 }
 ```
 
 ---
 
-#### 3. Child Process (Server Side)
+### 2. Master (`master.php`)
 
 ```php
+<?php
+declare(strict_types=1);
+
+use Amp\Process\Process;
+use function Amp\delay;
+use function Amp\Future\await;
 use PhpStreamIpc\IpcPeer;
 use PhpStreamIpc\Message\LogMessage;
+use App\Message\TaskRequest;
+use App\Message\TaskResponse;
 
-$peer = new IpcPeer(); // defaults to async + native PHP serialization
+require 'vendor/autoload.php';
+
+// 1) Prepare the IPC peer
+$peer = new IpcPeer();
+
+// 2) Spawn and connect to N slaves
+$slaveCount = 3;
+$sessions   = [];
+
+for ($i = 0; $i < $slaveCount; $i++) {
+    $proc = new Process(['php', 'slave.php']);
+    $proc->start();
+    $sessions[] = $peer->createProcessSession($proc);
+}
+
+// 3) Send each slave a TaskRequest and await its TaskResponse
+foreach ($sessions as $index => $session) {
+    $request  = new TaskRequest("Task #{$index}");
+    /** @var TaskResponse $response */
+    $response = $session->request($request)->await();
+    echo "Slave {$index} replied with: {$response->result}\n";
+    
+    // If you need just one-way communication, you can also use $session->notify()
+    $session->notify(new LogMessage("Slave {$index} finished", "info"));
+}
+
+// 4) Give slaves a moment, then tell them to shut down
+await(delay(500));
+$peer->broadcast(new LogMessage('shutdown', 'info'));
+```
+
+---
+
+### 3. Slave (`slave.php`)
+
+```php
+<?php
+declare(strict_types=1);
+
+use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\Message\LogMessage;
+use App\Message\TaskRequest;
+use App\Message\TaskResponse;
+
+require 'vendor/autoload.php';
+
+// 1) Create IPC session over stdio
+$peer    = new IpcPeer();
 $session = $peer->createStdioSession();
 
-$session->onRequest(function (SayHello $msg) {
-    return new LogMessage("Hello, {$msg->name}!"),
+// 2) Handle TaskRequest → TaskResponse
+$session->onRequest(function (TaskRequest $msg) {
+    // Do the “work”
+    $result = strtoupper($msg->job);
+    return new TaskResponse($result);
 });
-```
 
----
+// 3) Listen for broadcast shutdown and exit
+$session->onMessage(function (LogMessage $msg) {
+    if ($msg->message === 'shutdown') {
+        exit(0);
+    }
+});
 
-#### 4. Parent Process (Client Side)
-
-```php
-use Amp\Process\Process;
-use PhpStreamIpc\IpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-
-$proc = Process::start(['php', 'child-script.php']);
-$peer = new IpcPeer(); // async mode
-$session = $peer->createProcessSession($proc);
-
-// Fire a request
-$response = $session->request(new SayHello('Riki'));
-
-if ($response instanceof LogMessage) {
-    echo "Child said: {$response->message}";
+// 4) Manually pump the loop; you can also mix in other work here
+while (true) {
+    $session->tick();
+   
+    // OR to receive notifications:
+    $notification = $session->receive();
+    if ($notification instanceof LogMessage) {
+        echo "Received notification: {$notification->message}\n";
+    }
 }
 ```
 
 ---
 
-## 🧠 Concepts
+## Customizing
 
-### Sessions: `IpcSession`
+* **Serializer**
+  Swap in JSON encoding and your own ID generator:
 
-Provides:
-- `notify(Message)` – fire-and-forget
-- `request(Message): Future<Message>` – wait for reply
-- `onMessage()` and `onRequest()` handlers
+  ```php
+  new IpcPeer(
+    new JsonMessageSerializer(),
+    new PidHrtimeRequestIdGenerator()
+  );
+  ```
 
-Choose between:
-- `SyncIpcSession` – blocks until reply, good for CLI loops
-- `AsyncIpcSession` – non-blocking because of Revolt AMPHP event loop
+## Contributing
+Contributions, issues and feature requests are welcome!
+I am trying to keep this library minimal, easy to use and intuitive, with a single purpose.
 
----
+## License
 
-### Message Serialization
-
-Out-of-the-box:
-- `NativeMessageSerializer` – `serialize()` + `base64_encode()` (to avoid newlines in output)
-- `JsonMessageSerializer` – full introspective reflection, readable
-
-Switch via `IpcPeer` constructor:
-
-```php
-new IpcPeer(async: false, serializer: new JsonMessageSerializer());
-```
-
----
-
-## 🧪 Testing
-
-Full unit tests will be added soon.
-
----
-
-## 🛠️ Internals (Advanced)
-
-- Messages are wrapped in `RequestEnvelope` or `ResponseEnvelope` for routing
-- `PidHrtimeRequestIdGenerator` ensures globally unique request IDs
-- `MessageCommunicator` serializes and routes messages via AMP-readable streams
-- Cancellation & timeouts handled via AMPHP `Cancellation`/`DeferredFuture`
-
----
-
-## 📜 License
-
-MIT – do what you want, just don’t blame me when your printer becomes sentient.
-
----
-
-## 🧠 Brainstorm
-
-- Want structured schemas? Integrate something like `symfony/serializer` or `jms/serializer`.
-- Need persistent, long-running processes? Consider watchdog logic for `Process`.
-- Looking for integration with sockets or WebSockets? You could plug in custom `DataSender`/`DataReader` easily.
-- Want to monitor logs live? Create a `LogStreamMessage` type and broadcast to all active sessions.
-
-Happy hacking! 🔥
+MIT © Richard Popelis

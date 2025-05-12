@@ -41,51 +41,16 @@ final class IpcPeer
     /** @var IpcSession[] Active sessions created by this peer */
     private array $sessions = [];
 
-    /** @var Closure Factory for sync or async session instances */
-    private readonly Closure $sessionFactory;
-
     /**
-     * @param bool $async When true, use AsyncIpcSession; otherwise SyncIpcSession.
      * @param MessageSerializer $serializer Serializer to encode/decode Message objects.
      * @param RequestIdGenerator $idGen Generates unique IDs for requests.
      * @param float $timeout Timeout (in seconds) for request() before failure. Defaults to 0.5 because stdio should be very fast.
-     * @param Cancellation|null $cancellation Optional cancellation token for async sessions.
      */
     public function __construct(
-        bool $async = true,
         private readonly MessageSerializer $serializer = new NativeMessageSerializer(),
         private readonly RequestIdGenerator $idGen = new PidHrtimeRequestIdGenerator(),
         private readonly float $timeout = self::DEFAULT_TIMEOUT,
-        private readonly ?Cancellation $cancellation = null,
     ) {
-        $this->sessionFactory = $async
-            ? $this->createAsyncSession(...)
-            : $this->createSyncSession(...);
-    }
-
-    /**
-     * @internal
-     */
-    private function createSyncSession(DataSender $sender, DataReader $reader): SyncIpcSession
-    {
-        return new SyncIpcSession(
-            new MessageCommunicator($reader, $sender, $this->serializer),
-            $this->idGen,
-            $this->timeout,
-        );
-    }
-
-    /**
-     * @internal
-     */
-    private function createAsyncSession(DataSender $sender, DataReader $reader): AsyncIpcSession
-    {
-        return new AsyncIpcSession(
-            new MessageCommunicator($reader, $sender, $this->serializer),
-            $this->idGen,
-            $this->timeout,
-            $this->cancellation,
-        );
     }
 
     /**
@@ -97,7 +62,11 @@ final class IpcPeer
      */
     public function createSession(DataSender $sender, DataReader $reader): IpcSession
     {
-        $session = ($this->sessionFactory)($reader, $sender);
+        $session = new IpcSession(
+            new MessageCommunicator($reader, $sender, $this->serializer),
+            $this->idGen,
+            $this->timeout
+        );
         $this->sessions[] = $session;
         return $session;
     }
