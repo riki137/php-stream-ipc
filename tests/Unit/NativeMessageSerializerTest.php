@@ -41,4 +41,28 @@ final class NativeMessageSerializerTest extends TestCase
         $this->assertInstanceOf(LogMessage::class, $result);
         $this->assertSame('error', $result->level);
     }
+
+    public function testDeserializeSerializedFalseYieldsErrorLog(): void
+    {
+        $serializer = new NativeMessageSerializer();
+        // simulate the exact serialized "false" payload
+        $payload = serialize(false);
+
+        $result = $serializer->deserialize($payload);
+
+        $this->assertInstanceOf(LogMessage::class, $result);
+        $this->assertSame('error', $result->level);
+    }
+
+
+    public function testDeserializeSerializedTrueYieldsErrorLog(): void
+    {
+        $serializer = new NativeMessageSerializer();
+        $payload    = serialize(true); // not a Message
+
+        $result = $serializer->deserialize($payload);
+
+        $this->assertInstanceOf(LogMessage::class, $result);
+        $this->assertSame('error', $result->level);
+    }
 } 

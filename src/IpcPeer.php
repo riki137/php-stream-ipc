@@ -5,19 +5,14 @@ namespace PhpStreamIpc;
 
 use Amp\ByteStream\ReadableResourceStream;
 use Amp\ByteStream\WritableResourceStream;
-use Amp\Cancellation;
 use Amp\Process\Process;
-use Closure;
-use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Envelope\Id\PidHrtimeRequestIdGenerator;
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
+use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Serialization\MessageSerializer;
 use PhpStreamIpc\Serialization\NativeMessageSerializer;
-use PhpStreamIpc\Transport\DataReader;
-use PhpStreamIpc\Transport\DataSender;
-use PhpStreamIpc\Transport\MessageCommunicator;
-use PhpStreamIpc\Transport\StreamDataReader;
-use PhpStreamIpc\Transport\StreamDataSender;
+use PhpStreamIpc\Transport\FramedStreamMessageTransport;
+use PhpStreamIpc\Transport\MessageTransport;
 use function Amp\ByteStream\getStdin;
 use function Amp\ByteStream\getStdout;
 
@@ -41,7 +36,7 @@ final class IpcPeer
      * @param float $timeout Timeout (in seconds) for request() before failure. Defaults to 0.5 because stdio should be very fast.
      */
     public function __construct(
-        private readonly MessageSerializer $serializer = new NativeMessageSerializer(),
+        private readonly MessageSerializer $defaultSerializer = new NativeMessageSerializer(),
         private readonly RequestIdGenerator $idGen = new PidHrtimeRequestIdGenerator(),
         private readonly float $timeout = self::DEFAULT_TIMEOUT,
     ) {
@@ -50,14 +45,12 @@ final class IpcPeer
     /**
      * Instantiate a new IpcSession on the provided streams.
      *
-     * @param DataSender $sender Lower-level sender (e.g. StreamDataSender).
-     * @param DataReader $reader Lower-level reader (e.g. StreamDataReader).
      * @return IpcSession A new session you can notify(), request(), etc.
      */
-    public function createSession(DataSender $sender, DataReader $reader): IpcSession
+    public function createSession(MessageTransport $transport): IpcSession
     {
         $session = new IpcSession(
-            new MessageCommunicator($reader, $sender, $this->serializer),
+            $transport,
             $this->idGen,
             $this->timeout
         );
@@ -78,14 +71,11 @@ final class IpcPeer
         ReadableResourceStream $read,
         ?ReadableResourceStream $read2 = null,
     ): IpcSession {
-        // Prepare sender and reader streams, including optional stderr stream
-        $sender  = new StreamDataSender($write);
-        $streams = [$read];
-        if ($read2 !== null) {
-            $streams[] = $read2;
-        }
-        $reader = new StreamDataReader(...$streams);
-        return $this->createSession($sender, $reader);
+        return $this->createSession(new FramedStreamMessageTransport(
+            $write,
+            [$read, ...($read2 !== null ? [$read2] : [])],
+            $this->defaultSerializer
+        ));
     }
 
     /**

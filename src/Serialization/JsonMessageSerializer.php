@@ -9,6 +9,7 @@ use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 use ReflectionClass;
 use Throwable;
+use function class_exists;
 
 /**
  * Serializes Message objects to JSON, capturing all properties via reflection for deep reconstruction.
@@ -94,7 +95,7 @@ final readonly class JsonMessageSerializer implements MessageSerializer
         }
 
         $class = $decoded['__class'];
-        if (!\class_exists($class)) {
+        if (!class_exists($class)) {
             return new LogMessage("Unknown class: {$class}", 'error');
         }
 
@@ -129,7 +130,7 @@ final readonly class JsonMessageSerializer implements MessageSerializer
     {
         if (is_array($data) && isset($data['__class'])) {
             $class = $data['__class'];
-            if (!\class_exists($class)) {
+            if (!class_exists($class)) {
                 return $data; // bail out if class missing
             }
             $ref = new ReflectionClass($class);

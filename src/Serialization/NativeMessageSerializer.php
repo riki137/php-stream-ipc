@@ -23,7 +23,7 @@ final readonly class NativeMessageSerializer implements MessageSerializer
     public function serialize(Message $data): string
     {
         // Base64‐encode the serialized payload so it never contains "\n"
-        return base64_encode(serialize($data));
+        return serialize($data);
     }
 
     /**
@@ -37,20 +37,14 @@ final readonly class NativeMessageSerializer implements MessageSerializer
      */
     public function deserialize(string $data): Message
     {
-        // First, base64‐decode; if it's invalid, log an error
-        $decoded = base64_decode($data, true);
-        if ($decoded === false) {
-            return new LogMessage($data, 'error');
-        }
-
         // Then try unserializing
         try {
-            $result = @unserialize($decoded);
+            $result = @unserialize($data);
         } catch (Throwable $e) {
             return new LogMessage($decoded, 'error');
         }
 
-        if ($result === false && $decoded !== serialize(false)) {
+        if ($result === false && $data !== serialize(false)) {
             return new LogMessage($data, 'error');
         }
 

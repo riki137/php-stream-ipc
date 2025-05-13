@@ -3,20 +3,20 @@ declare(strict_types=1);
 
 namespace PhpStreamIpc;
 
+use Amp\ByteStream\ClosedException;
 use Amp\Cancellation;
 use Amp\CancelledException;
 use Amp\CompositeCancellation;
 use Amp\DeferredCancellation;
 use Amp\DeferredFuture;
 use Amp\Future;
-use Amp\TimeoutCancellation;
 use Amp\TimeoutException;
 use Closure;
-use PhpStreamIpc\Message\Message;
-use PhpStreamIpc\Envelope\RequestEnvelope;
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
+use PhpStreamIpc\Envelope\RequestEnvelope;
 use PhpStreamIpc\Envelope\ResponseEnvelope;
-use PhpStreamIpc\Transport\MessageCommunicator;
+use PhpStreamIpc\Message\Message;
+use PhpStreamIpc\Transport\MessageTransport;
 use Throwable;
 use function Amp\async;
 use function Amp\delay;
@@ -31,15 +31,21 @@ use function Amp\delay;
 final class IpcSession
 {
     private array $messageHandlers = [];
+
     private array $requestHandlers = [];
+
     private array $pendingResponses = [];
+
     private array $timeouts = [];
+
     private readonly DeferredCancellation $defCancellation;
+
     private readonly Cancellation $cancellation;
+
     private Future $loop;
 
     public function __construct(
-        private readonly MessageCommunicator $comm,
+        private readonly MessageTransport $transport,
         private readonly RequestIdGenerator $idGen,
         private readonly float $timeout
     ) {
@@ -68,7 +74,7 @@ final class IpcSession
      */
     public function notify(Message $msg): void
     {
-        $this->comm->send($msg);
+        $this->transport->send($msg);
     }
 
     /**
@@ -85,7 +91,7 @@ final class IpcSession
             : $this->cancellation;
 
         $id = $this->idGen->generate();
-        $this->comm->send(new RequestEnvelope($id, $msg));
+        $this->transport->send(new RequestEnvelope($id, $msg));
 
         $deferred = new DeferredFuture();
         $this->pendingResponses[$id] = $deferred;
@@ -123,7 +129,7 @@ final class IpcSession
         $deferred = new DeferredFuture();
 
         $handler = $cancelId = null;
-        $cancelId = $cancel->subscribe(function (Throwable $e) use ($deferred, $handler) {
+        $cancelId = $cancel->subscribe(function (Throwable $e) use ($deferred, &$handler) {
             $this->offMessage($handler);
             if (!$deferred->isComplete()) {
                 $deferred->error($e);
@@ -198,6 +204,7 @@ final class IpcSession
      * Read and process a single incoming envelope, dispatching to the appropriate handlers.
      *
      * @param Cancellation|null $cancellation Optional cancellation token for this tick.
+     * @throws ClosedException If the stream is closed and no more messages can be read.
      * @return void
      */
     public function tick(?Cancellation $cancellation = null): void
@@ -206,13 +213,13 @@ final class IpcSession
             ? new CompositeCancellation($cancellation, $this->cancellation)
             : $this->cancellation;
 
-        $envelope = $this->comm->read($cancel);
+        $envelope = $this->transport->read($cancel);
 
         if ($envelope instanceof RequestEnvelope) {
             foreach ($this->requestHandlers as $h) {
                 $resp = $h($envelope->request, $this);
                 if ($resp instanceof Message) {
-                    $this->comm->send(new ResponseEnvelope($envelope->id, $resp));
+                    $this->transport->send(new ResponseEnvelope($envelope->id, $resp));
                     break;
                 }
             }
@@ -248,5 +255,4 @@ final class IpcSession
             // ignore
         }
     }
-
 }

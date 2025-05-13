@@ -9,6 +9,13 @@
             "PhpStreamIpc\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\PhpStreamIpc\\Integration\\": "tests/Integration/",
+            "Tests\\PhpStreamIpc\\Fixtures\\": "tests/Fixtures/",
+            "Tests\\PhpStreamIpc\\Unit\\": "tests/Unit/"
+        }
+    },
     "authors": [
         {
             "name": "Richard Popelis",
@@ -22,6 +29,7 @@
         "amphp/process": "^2.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^12.1"
+        "phpunit/phpunit": "^12.1",
+        "dg/bypass-finals": "^1.9"
     }
 }
