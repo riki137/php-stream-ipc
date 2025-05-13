@@ -21,7 +21,14 @@ use Throwable;
 use function Amp\async;
 use function Amp\delay;
 
-class IpcSession
+/**
+ * Manages an IPC session lifecycle:
+ * - Sends and receives Message objects asynchronously
+ * - Processes Request and Response envelopes with unique IDs
+ * - Supports notification and request handlers with automatic event loop ticking
+ * - Enforces request timeouts and supports cancellation
+ */
+final class IpcSession
 {
     private array $messageHandlers = [];
     private array $requestHandlers = [];
@@ -47,17 +54,30 @@ class IpcSession
             }
         });
         $this->loop = async(function () {
-            while (true) {
+            while (!$this->cancellation->isRequested()) {
                 $this->tick($this->cancellation);
             }
         });
     }
 
+    /**
+     * Send a notification message without expecting a response.
+     *
+     * @param Message $msg The notification message to send.
+     * @return void
+     */
     public function notify(Message $msg): void
     {
         $this->comm->send($msg);
     }
 
+    /**
+     * Send a request message and return a future for the corresponding response.
+     *
+     * @param Message $msg The request message to send.
+     * @param Cancellation|null $cancellation Optional cancellation token.
+     * @return Future<Message> Future resolving to the response message.
+     */
     public function request(Message $msg, ?Cancellation $cancellation = null): Future
     {
         $cancel = $cancellation !== null
@@ -74,16 +94,26 @@ class IpcSession
         $this->timeouts[$id] = $timerCancel;
 
         async(function () use ($id, $timerCancel, $cancel) {
-            delay($this->timeout, true, $cancel);
-            if (isset($this->pendingResponses[$id])) {
-                $this->pendingResponses[$id]->error(new TimeoutException('Request timed out'));
-                unset($this->pendingResponses[$id], $this->timeouts[$id]);
+            try {
+                delay($this->timeout, true, $cancel);
+                if (isset($this->pendingResponses[$id])) {
+                    $this->pendingResponses[$id]->error(new TimeoutException('Request timed out'));
+                    unset($this->pendingResponses[$id], $this->timeouts[$id]);
+                }
+            } catch (CancelledException $e) {
+                // ignore
             }
         });
 
         return $deferred->getFuture();
     }
 
+    /**
+     * Receive the next incoming message as a future.
+     *
+     * @param Cancellation|null $cancellation Optional cancellation token.
+     * @return Future<Message> Future resolving to the received message.
+     */
     public function receive(?Cancellation $cancellation = null): Future
     {
         $cancel = $cancellation !== null
@@ -92,13 +122,14 @@ class IpcSession
 
         $deferred = new DeferredFuture();
 
+        $handler = $cancelId = null;
         $cancelId = $cancel->subscribe(function (Throwable $e) use ($deferred, $handler) {
             $this->offMessage($handler);
             if (!$deferred->isComplete()) {
                 $deferred->error($e);
             }
         });
-        $handler = function (Message $msg) use ($cancel, $cancelId, $deferred, &$handler) {
+        $handler = function (Message $msg) use ($cancel, &$cancelId, $deferred, &$handler) {
             $this->offMessage($handler);
             $cancel->unsubscribe($cancelId);
             $deferred->complete($msg);
@@ -109,11 +140,23 @@ class IpcSession
         return $deferred->getFuture();
     }
 
+    /**
+     * Register a handler for incoming notification messages.
+     *
+     * @param Closure(Message, IpcSession): void $handler Handler invoked on each message.
+     * @return void
+     */
     public function onMessage(Closure $handler): void
     {
         $this->messageHandlers[] = $handler;
     }
 
+    /**
+     * Unregister a previously registered notification handler.
+     *
+     * @param Closure(Message, IpcSession): void $handler Handler to remove.
+     * @return void
+     */
     public function offMessage(Closure $handler): void
     {
         foreach ($this->messageHandlers as $i => $h) {
@@ -124,11 +167,23 @@ class IpcSession
         }
     }
 
+    /**
+     * Register a handler for incoming request messages.
+     *
+     * @param Closure(Message, IpcSession): Message|null $handler Handler that processes a request and optionally returns a response.
+     * @return void
+     */
     public function onRequest(Closure $handler): void
     {
         $this->requestHandlers[] = $handler;
     }
 
+    /**
+     * Unregister a previously registered request handler.
+     *
+     * @param Closure(Message, IpcSession): Message|null $handler Handler to remove.
+     * @return void
+     */
     public function offRequest(Closure $handler): void
     {
         foreach ($this->requestHandlers as $i => $h) {
@@ -139,6 +194,12 @@ class IpcSession
         }
     }
 
+    /**
+     * Read and process a single incoming envelope, dispatching to the appropriate handlers.
+     *
+     * @param Cancellation|null $cancellation Optional cancellation token for this tick.
+     * @return void
+     */
     public function tick(?Cancellation $cancellation = null): void
     {
         $cancel = $cancellation !== null
@@ -173,10 +234,19 @@ class IpcSession
         }
     }
 
+    /**
+     * Close the session, cancelling all pending operations and stopping the processing loop.
+     *
+     * @return void
+     */
     public function close(): void
     {
-        $this->defCancellation->cancel();
-        $this->loop->await();
+        try {
+            $this->defCancellation->cancel();
+            $this->loop->await();
+        } catch (CancelledException $e) {
+            // ignore
+        }
     }
 
 }

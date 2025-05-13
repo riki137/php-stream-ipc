@@ -10,12 +10,18 @@ use PhpStreamIpc\Message\Message;
 use ReflectionClass;
 use Throwable;
 
+/**
+ * Serializes Message objects to JSON, capturing all properties via reflection for deep reconstruction.
+ * On JSON errors or unknown classes, returns a LogMessage with level 'error'.
+ */
 final readonly class JsonMessageSerializer implements MessageSerializer
 {
     /**
-     * Convert a Message object (including all private/protected props, deeply)
-     * into a JSON string.
-     * @throws JsonException
+     * Convert a Message object to a JSON string, including all private and protected properties.
+     *
+     * @param Message $data The Message to encode.
+     * @return string JSON-encoded string representing the message.
+     * @throws JsonException If encoding fails.
      */
     public function serialize(Message $data): string
     {
@@ -67,7 +73,13 @@ final readonly class JsonMessageSerializer implements MessageSerializer
     }
 
     /**
-     * Decode the JSON string back into a Message instance (or LogMessage on error).
+     * Decode a JSON string into a Message instance.
+     *
+     * On errors (invalid JSON, unknown class, instantiation failure),
+     * returns a LogMessage with level 'error'.
+     *
+     * @param string $data The JSON-encoded message payload.
+     * @return Message The reconstructed Message or a LogMessage on error.
      */
     public function deserialize(string $data): Message
     {

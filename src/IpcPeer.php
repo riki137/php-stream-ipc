@@ -22,14 +22,8 @@ use function Amp\ByteStream\getStdin;
 use function Amp\ByteStream\getStdout;
 
 /**
- * Entry point for Inter-Process Communication.
- * Manages one or more IpcSession instances (sync or async) over arbitrary streams.
- *
- * Example:
- * ```php
- * $peer = new IpcPeer(async: true);
- * $session = $peer->connectToStdio();
- * $session->onMessage(fn(LogMessage $m) => file_put_contents('log.txt', $m->message));
+ * Entry point for IPC operations, creating and managing multiple IpcSession instances over stdio, pipes, or child processes.
+ * Enables broadcasting notifications, orchestrating request/response exchanges, and configuring custom serializers and ID generators.
  */
 final class IpcPeer
 {
@@ -84,14 +78,18 @@ final class IpcPeer
         ReadableResourceStream $read,
         ?ReadableResourceStream $read2 = null,
     ): IpcSession {
-        return $this->createSession(
-            new StreamDataSender($write),
-            new StreamDataReader($read, $read2),
-        );
+        // Prepare sender and reader streams, including optional stderr stream
+        $sender  = new StreamDataSender($write);
+        $streams = [$read];
+        if ($read2 !== null) {
+            $streams[] = $read2;
+        }
+        $reader = new StreamDataReader(...$streams);
+        return $this->createSession($sender, $reader);
     }
 
     /**
-     * Bind a session to the current process’s STDIN/STDOUT.
+     * Bind a session to the current process's STDIN/STDOUT.
      *
      * @return IpcSession
      */

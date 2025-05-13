@@ -10,6 +10,10 @@ use Amp\Pipeline\Pipeline;
 use InvalidArgumentException;
 use function count;
 
+/**
+ * Reads line-delimited messages from one or more ReadableResourceStreams,
+ * merging multiple streams into a single pipeline for consumption.
+ */
 final class StreamDataReader implements DataReader
 {
     private ConcurrentIterator $iterator;
@@ -17,13 +21,13 @@ final class StreamDataReader implements DataReader
     public function __construct(ReadableResourceStream ...$streams)
     {
         $pipelines = array_map(
-            static fn(ReadableResourceStream $stream) => Pipeline::fromIterable(self::generateLines($stream)),
+            static fn(ReadableResourceStream $stream) => self::generateLines($stream),
             $streams
         );
         $pipeline = match (count($pipelines)) {
             0 => throw new InvalidArgumentException('At least one stream must be provided'),
-            1 => reset($pipelines),
-            default => Pipeline::merge(...$pipelines),
+            1 => Pipeline::fromIterable(reset($pipelines)),
+            default => Pipeline::merge($pipelines),
         };
         $this->iterator = $pipeline->getIterator();
     }
@@ -48,7 +52,11 @@ final class StreamDataReader implements DataReader
     }
 
     /**
-     * @throws ClosedException
+     * Read the next message line from the underlying streams.
+     *
+     * @param Cancellation|null $cancellation Optional cancellation token to abort the read.
+     * @return string The raw serialized message payload.
+     * @throws ClosedException When the stream is closed and no more data is available.
      */
     public function read(?Cancellation $cancellation = null): string
     {
