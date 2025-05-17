@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc;
 
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
+use PhpStreamIpc\Envelope\MessagePromise;
 use PhpStreamIpc\Envelope\RequestEnvelope;
 use PhpStreamIpc\Envelope\ResponseEnvelope;
 use PhpStreamIpc\Message\LogMessage;
@@ -19,15 +20,22 @@ use PhpStreamIpc\Transport\TimeoutException;
  */
 final class IpcSession
 {
-    /** @var array<callable(Message, IpcSession): void> Pending message handlers, indexed by handler ID */
+    /** @var array<int, callable(Message, IpcSession): void> Pending message handlers, numerically indexed. */
     private array $messageHandlers = [];
 
-    /** @var array<callable(Message, IpcSession): Message|null> Pending request handlers, indexed by handler ID */
+    /** @var array<int, callable(Message, IpcSession): (Message|null)> Pending request handlers, numerically indexed. */
     private array $requestHandlers = [];
 
     /** @var array<string, Message> Pending responses, indexed by request ID */
     private array $responses = [];
 
+    /**
+     * Constructs a new IpcSession.
+     *
+     * @param IpcPeer $peer The parent peer managing this session.
+     * @param MessageTransport $transport The transport layer for sending/receiving messages.
+     * @param RequestIdGenerator $idGen The generator for creating unique request IDs.
+     */
     public function __construct(
         private readonly IpcPeer $peer,
         private readonly MessageTransport $transport,
@@ -35,11 +43,24 @@ final class IpcSession
     ) {
     }
 
+    /**
+     * Gets the message transport associated with this session.
+     *
+     * @return MessageTransport The message transport instance.
+     */
     public function getTransport(): MessageTransport
     {
         return $this->transport;
     }
 
+    /**
+     * Dispatches an incoming message to the appropriate handlers.
+     * If the message is a request, it's passed to request handlers.
+     * If it's a response, it's stored for a pending request.
+     * Otherwise, it's passed to general message handlers.
+     *
+     * @param Message $envelope The incoming message (can be a RequestEnvelope, ResponseEnvelope, or other Message).
+     */
     public function dispatch(Message $envelope): void
     {
         try {
@@ -67,43 +88,64 @@ final class IpcSession
         }
     }
 
+    /**
+     * Sends a notification message (a message that doesn't expect a direct response).
+     *
+     * @param Message $msg The message to send.
+     */
     public function notify(Message $msg): void
     {
         $this->transport->send($msg);
     }
 
-    public function request(Message $msg, ?float $timeout = null): Message
+    /**
+     * Sends a request message and waits for a response.
+     *
+     * @param Message $msg The request message to send.
+     * @param float|null $timeout Optional timeout in seconds. If null, waits indefinitely.
+     * @return MessagePromise The response message promise.
+     */
+    public function request(Message $msg, ?float $timeout = null): MessagePromise
     {
         $id = $this->idGen->generate();
         $this->transport->send(new RequestEnvelope($id, $msg));
-
-        $start = microtime(true);
-        while (!isset($this->responses[$id])) {
-            $elapsed = microtime(true) - $start;
-
-            if ($timeout !== null) {
-                $remaining = $timeout - $elapsed;
-                if ($remaining <= 0) {
-                    throw new TimeoutException("IPC request timed out after {$timeout}s");
-                }
-            } else {
-                $remaining = null; // block indefinitely if no timeout was given
-            }
-
-            // now pass the remaining time (or null) into tick()
-            $this->peer->tick($remaining);
-        }
-
-        $resp = $this->responses[$id];
-        unset($this->responses[$id]);
-        return $resp;
+        return new MessagePromise($this->peer, $this, $id, $timeout);
     }
 
+    /**
+     * @internal
+     */
+    public function popResponse(string $id): ?Message
+    {
+        if (isset($this->responses[$id])) {
+            $resp = $this->responses[$id];
+            unset($this->responses[$id]);
+            return $resp;
+        }
+
+        return null;
+    }
+
+    /**
+     * Registers a handler for incoming notification messages (messages that are not requests or responses).
+     *
+     * The handler callable should accept two arguments:
+     * - `Message $message`: The received message.
+     * - `IpcSession $session`: The current IPC session instance.
+     * It should return `void`.
+     *
+     * @param callable(Message, IpcSession): void $handler The callback to execute when a message is received.
+     */
     public function onMessage(callable $handler): void
     {
         $this->messageHandlers[] = $handler;
     }
 
+    /**
+     * Unregisters a previously registered message handler.
+     *
+     * @param callable $handler The handler to remove. Must be the same instance as was registered.
+     */
     public function offMessage(callable $handler): void
     {
         foreach ($this->messageHandlers as $i => $h) {
@@ -114,11 +156,26 @@ final class IpcSession
         }
     }
 
+    /**
+     * Registers a handler for incoming request messages.
+     *
+     * The handler callable should accept two arguments:
+     * - `Message $request`: The received request message.
+     * - `IpcSession $session`: The current IPC session instance.
+     * It should return a `Message` object as the response, or `null` if this handler doesn't process the request.
+     *
+     * @param callable(Message, IpcSession): (Message|null) $handler The callback to execute when a request is received.
+     */
     public function onRequest(callable $handler): void
     {
         $this->requestHandlers[] = $handler;
     }
 
+    /**
+     * Unregisters a previously registered request handler.
+     *
+     * @param callable $handler The handler to remove. Must be the same instance as was registered.
+     */
     public function offRequest(callable $handler): void
     {
         foreach ($this->requestHandlers as $i => $h) {
@@ -129,6 +186,10 @@ final class IpcSession
         }
     }
 
+    /**
+     * Closes the IPC session and removes it from its peer.
+     * This stops the session from receiving further messages or participating in I/O ticks.
+     */
     public function close(): void
     {
         $this->peer->removeSession($this);

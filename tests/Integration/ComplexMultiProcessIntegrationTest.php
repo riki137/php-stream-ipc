@@ -47,7 +47,7 @@ $session->notify(new LogMessage('child%d-notify1', 'info'));
 usleep(100000 * %d);
 
 // request and wait for response
-$response = $session->request(new LogMessage('child%d-request1', 'info'), 1.0);
+$response = $session->request(new LogMessage('child%d-request1', 'info'), 1.0)->await();
 
 // second notification
 usleep(50000);

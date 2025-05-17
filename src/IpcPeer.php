@@ -24,6 +24,12 @@ final class IpcPeer
 
     private RequestIdGenerator $idGen;
 
+    /**
+     * Constructs a new IpcPeer.
+     *
+     * @param MessageSerializer|null $defaultSerializer Optional custom message serializer. Defaults to NativeMessageSerializer.
+     * @param RequestIdGenerator|null $idGen Optional custom request ID generator. Defaults to PidHrtimeRequestIdGenerator.
+     */
     public function __construct(
         ?MessageSerializer $defaultSerializer = null,
         ?RequestIdGenerator $idGen = null
@@ -32,6 +38,12 @@ final class IpcPeer
         $this->idGen = $idGen ?? new PidHrtimeRequestIdGenerator();
     }
 
+    /**
+     * Creates a new IPC session with the given message transport.
+     *
+     * @param MessageTransport $transport The transport to use for the session.
+     * @return IpcSession The newly created IPC session.
+     */
     public function createSession(MessageTransport $transport): IpcSession
     {
         $session = new IpcSession($this, $transport, $this->idGen);
@@ -39,6 +51,14 @@ final class IpcPeer
         return $session;
     }
 
+    /**
+     * Creates a new IPC session using the provided stream resources.
+     *
+     * @param resource $write The stream resource for writing messages.
+     * @param resource $read The primary stream resource for reading messages.
+     * @param resource|null $read2 An optional, additional stream resource for reading messages.
+     * @return IpcSession The created IPC session.
+     */
     public function createStreamSession($write, $read, $read2 = null): IpcSession
     {
         $reads = [$read];
@@ -54,11 +74,22 @@ final class IpcPeer
         );
     }
 
+    /**
+     * Creates a new IPC session that communicates over standard input (STDIN) and standard output (STDOUT).
+     *
+     * @return IpcSession The created IPC session using stdio.
+     */
     public function createStdioSession(): IpcSession
     {
         return $this->createStreamSession(STDOUT, STDIN);
     }
 
+    /**
+     * Removes an IPC session from this peer.
+     * This effectively stops the peer from managing or ticking the session.
+     *
+     * @param IpcSession $session The session to remove.
+     */
     public function removeSession(IpcSession $session): void
     {
         $this->sessions = array_filter($this->sessions, fn($s) => $s !== $session);
@@ -77,6 +108,12 @@ final class IpcPeer
         }
     }
 
+    /**
+     * Runs the tick loop for a specified duration.
+     * This method will call `tick()` repeatedly until the given number of seconds has elapsed.
+     *
+     * @param float $seconds The duration in seconds to run the tick loop.
+     */
     public function tickFor(float $seconds): void
     {
         $start = microtime(true);

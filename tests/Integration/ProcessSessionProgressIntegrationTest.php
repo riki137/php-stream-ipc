@@ -82,7 +82,7 @@ PHP;
             $progress[] = $msg->message;
         });
 
-        $response = $session->request(new LogMessage('start', 'info'), 2.0);
+        $response = $session->request(new LogMessage('start', 'info'), 2.0)->await();
 
         // verify interim steps
         $this->assertSame(['step1', 'step2'], $progress);

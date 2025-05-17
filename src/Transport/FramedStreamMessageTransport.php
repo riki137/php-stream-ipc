@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Transport;
 
 use LogicException;
+use PhpStreamIpc\IpcSession;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Serialization\MessageSerializer;
 use function pack;
@@ -19,6 +20,7 @@ use function strlen;
  */
 final class FramedStreamMessageTransport implements MessageTransport
 {
+    /** @var int The default maximum frame size in bytes (10MB). */
     public const DEFAULT_MAX_FRAME = 10 * 1024 * 1024;
 
     /** @var resource */
@@ -29,6 +31,14 @@ final class FramedStreamMessageTransport implements MessageTransport
     /** @var StreamFrameReader[] indexed by (int)$stream */
     private array $readers = [];
 
+    /**
+     * Constructs a new FramedStreamMessageTransport.
+     *
+     * @param resource $writeStream The stream resource for writing messages.
+     * @param resource[] $readStreams An array of stream resources for reading messages.
+     * @param MessageSerializer $serializer The serializer to use for messages.
+     * @param int $frameLimit The maximum allowed size for a single message frame.
+     */
     public function __construct(
         $writeStream,
         array $readStreams,
@@ -42,6 +52,12 @@ final class FramedStreamMessageTransport implements MessageTransport
         }
     }
 
+    /**
+     * Sends a message over the write stream.
+     * The message is serialized, prefixed with a magic number and its length, and then written to the stream.
+     *
+     * @param Message $message The message to send.
+     */
     public function send(Message $message): void
     {
         $payload = $this->serializer->serialize($message);
@@ -55,11 +71,20 @@ final class FramedStreamMessageTransport implements MessageTransport
     /**
      * @throws StreamClosedException
      */
-    public function readFrom($stream): Message
+    private function readFrom($stream): array
     {
         return $this->readers[(int)$stream]->readFrameSync();
     }
 
+    /**
+     * Performs a single I/O tick for all provided sessions that use this transport type.
+     * It uses `stream_select` to wait for readable data on any of the sessions' read streams.
+     * When data is ready, it reads and dispatches messages.
+     *
+     * @param IpcSession[] $sessions An array of IPC sessions to process.
+     * @param float|null $timeout Optional timeout in seconds for `stream_select`. Null means block indefinitely.
+     * @throws LogicException If a session uses a different transport type.
+     */
     public function tick(array $sessions, ?float $timeout = null): void
     {
         $streams = [];
@@ -95,8 +120,9 @@ final class FramedStreamMessageTransport implements MessageTransport
             foreach ($reads as $stream) {
                 $session = $sessionStreams[(int)$stream];
                 try {
-                    $msg = $session->getTransport()->readFrom($stream);
-                    $session->dispatch($msg);
+                    foreach ($session->getTransport()->readFrom($stream) as $msg) {
+                        $session->dispatch($msg);
+                    }
                 } catch (StreamClosedException) {
                     // ignore
                 }

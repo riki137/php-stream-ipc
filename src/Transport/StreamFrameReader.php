@@ -16,12 +16,25 @@ use function strpos;
 use function substr;
 use function unpack;
 
+/**
+ * Reads framed messages from a stream.
+ * It expects messages to be prefixed with a magic number and a 4-byte length header.
+ * Handles partial reads and reassembles full message frames.
+ * If invalid data or framing errors are encountered, it may return a LogMessage.
+ */
 final class StreamFrameReader
 {
     public const MAGIC = "\xF3\x4A\x9D\xE2";
 
     private string $buffer = '';
 
+    /**
+     * Constructs a new StreamFrameReader.
+     *
+     * @param resource $stream The stream to read from.
+     * @param MessageSerializer $serializer The serializer to use for deserializing message payloads.
+     * @param int $maxFrame The maximum allowed size for a single message frame.
+     */
     public function __construct(
         private $stream,
         private readonly MessageSerializer $serializer,
@@ -29,81 +42,109 @@ final class StreamFrameReader
     ) {
     }
 
+    /**
+     * Gets the underlying stream resource.
+     *
+     * @return resource The stream resource being read from.
+     */
     public function getStream()
     {
         return $this->stream;
     }
 
     /**
-     * @throws StreamClosedException
+     * Reads one or more message frames from the stream synchronously (blocking).
+     * Continues reading until at least one full frame is parsed, then returns
+     * every complete frame currently buffered as an array of Message objects.
+     *
+     * If the stream is closed before any complete frame is read, a StreamClosedException is thrown.
+     * Invalid framing or oversized frames produce LogMessage entries.
+     *
+     * @return Message[]  Array of deserialized messages (or LogMessage on errors)
+     * @throws StreamClosedException If the stream is closed before any complete frame is available
      */
-    public function readFrameSync(): Message
+    public function readFrameSync(): array
     {
         $magicLen = strlen(self::MAGIC);
+        $messages = [];
 
         while (true) {
+            // 1) Read and buffer
             $chunk = fread($this->stream, 8192);
             if ($chunk === '' || $chunk === false) {
                 if (feof($this->stream)) {
                     if (strlen($this->buffer) === 0) {
                         throw new StreamClosedException();
                     }
-                    // otherwise, fall through and parse what's already in $this->buffer
+                    // fall through to parsing whatever's left in buffer
                 } else {
-                    // no data right now, try again
+                    // no data right now, retry
                     continue;
                 }
             } else {
                 $this->buffer .= $chunk;
             }
 
-            $pos = strpos($this->buffer, self::MAGIC);
+            // 2) Parse out as many full frames (or junk) as possible
+            while (true) {
+                $pos = strpos($this->buffer, self::MAGIC);
 
-            // no magic found yet
-            if ($pos === false) {
-                // if buffer is so big it can't possibly contain MAGIC any more...
-                if (strlen($this->buffer) > $magicLen) {
-                    // only discard up to the point where a full MAGIC could still begin
-                    $discard = strlen($this->buffer) - ($magicLen - 1);
-                    $junk    = substr($this->buffer, 0, $discard);
-                    $this->buffer = substr($this->buffer, $discard);
-                    return new LogMessage($junk, 'error');
+                // -- no magic at all yet
+                if ($pos === false) {
+                    // if buffer grows too large with no magic, drop the excess as error
+                    if (strlen($this->buffer) > $magicLen) {
+                        $discard = strlen($this->buffer) - ($magicLen - 1);
+                        $junk    = substr($this->buffer, 0, $discard);
+                        $this->buffer = substr($this->buffer, $discard);
+                        $messages[] = new LogMessage($junk, 'error');
+                        continue;
+                    }
+                    break;
                 }
-                continue;
+
+                // -- junk before magic
+                if ($pos > 0) {
+                    $junk = substr($this->buffer, 0, $pos);
+                    $this->buffer = substr($this->buffer, $pos);
+                    $messages[] = new LogMessage($junk, 'error');
+                    continue;
+                }
+
+                // -- need at least 8 bytes (magic + length) to proceed
+                if (strlen($this->buffer) < 8) {
+                    break;
+                }
+
+                // -- pull length
+                $length = unpack('N', substr($this->buffer, 4, 4))[1];
+                if ($length > $this->maxFrame) {
+                    // skip one byte and resync
+                    $this->buffer = substr($this->buffer, 1);
+                    continue;
+                }
+
+                // -- wait for full payload
+                if (strlen($this->buffer) < 8 + $length) {
+                    break;
+                }
+
+                // -- consume a full frame
+                $payload = substr($this->buffer, 8, $length);
+                $this->buffer = substr($this->buffer, 8 + $length);
+
+                try {
+                    $messages[] = $this->serializer->deserialize($payload);
+                } catch (Throwable $e) {
+                    $messages[] = new LogMessage($payload, 'error');
+                }
             }
 
-            // magic not at start → junk before it
-            if ($pos > 0) {
-                $junk = substr($this->buffer, 0, $pos);
-                $this->buffer = substr($this->buffer, $pos);
-                return new LogMessage($junk, 'error');
+            // 3) if we got at least one message, return them now
+            if (!empty($messages)) {
+                return $messages;
             }
 
-            // too small to even contain length header
-            if (strlen($this->buffer) < 8) {
-                continue;
-            }
-
-            $length = unpack('N', substr($this->buffer, 4, 4))[1];
-            if ($length > $this->maxFrame) {
-                // skip one byte and re-search
-                $this->buffer = substr($this->buffer, 1);
-                continue;
-            }
-
-            // not arrived yet
-            if (strlen($this->buffer) < 8 + $length) {
-                continue;
-            }
-
-            $payload = substr($this->buffer, 8, $length);
-            $this->buffer = substr($this->buffer, 8 + $length);
-
-            try {
-                return $this->serializer->deserialize($payload);
-            } catch (Throwable $e) {
-                return new LogMessage($payload, 'error');
-            }
+            // otherwise, loop back and read more
         }
     }
 }

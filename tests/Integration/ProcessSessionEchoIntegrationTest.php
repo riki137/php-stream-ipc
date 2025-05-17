@@ -70,7 +70,7 @@ PHP;
         $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
         $msg      = new LogMessage('hello world', 'info');
-        $response = $session->request($msg, 1.0);
+        $response = $session->request($msg, 1.0)->await();
 
         $this->assertInstanceOf(LogMessage::class, $response);
         $this->assertSame('hello world', $response->message);

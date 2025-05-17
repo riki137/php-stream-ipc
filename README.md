@@ -49,7 +49,7 @@ $peer = new IpcPeer();
 $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
 // Send a request to the child and wait for response
-$response = $session->request(new LogMessage('Hello from parent!'), 5.0);
+$response = $session->request(new LogMessage('Hello from parent!'), 5.0)->await();
 echo "Child responded: {$response->message}\n";
 
 // Clean up
@@ -300,7 +300,7 @@ $task = new TaskMessage('processFile', [
 
 $session->notify($task);
 // Or make a request with the custom message
-$response = $session->request($task);
+$response = $session->request($task)->await();
 ```
 
 ### 5. Handling Timeouts
@@ -315,7 +315,7 @@ $session = $peer->createStdioSession();
 
 try {
     // Set a short timeout (2 seconds)
-    $response = $session->request(new LogMessage("Fast request"), 2.0);
+    $response = $session->request(new LogMessage("Fast request"), 2.0)->await();
     echo "Received response: {$response->message}\n";
 } catch (\PhpStreamIpc\Transport\TimeoutException $e) {
     echo "Request timed out: {$e->getMessage()}\n";
