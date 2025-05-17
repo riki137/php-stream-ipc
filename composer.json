@@ -1,9 +1,9 @@
 {
     "name": "riki137/php-stream-ipc",
-    "description": "Async Stream IPC for PHP – Lightweight AMPHP powered library enabling high-throughput, zero-dependency inter-process communication over stdio and standard streams.",
+    "description": "Inter-Process Communication (IPC) over streams, pipes, and stdio with built-in request-response correlation, message framing, and serialization.",
     "type": "library",
     "license": "MIT",
-    "keywords": ["php", "ipc", "async", "amp", "stream", "amphp", "stdio", "inter-process-communication", "fast"],
+    "keywords": ["php", "ipc", "stream", "stdio", "inter-process-communication", "fast", "async"],
     "autoload": {
         "psr-4": {
             "PhpStreamIpc\\": "src/"
@@ -11,9 +11,9 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\PhpStreamIpc\\Integration\\": "tests/Integration/",
-            "Tests\\PhpStreamIpc\\Fixtures\\": "tests/Fixtures/",
-            "Tests\\PhpStreamIpc\\Unit\\": "tests/Unit/"
+            "PhpStreamIpc\\Tests\\Integration\\": "tests/Integration/",
+            "PhpStreamIpc\\Tests\\Fixtures\\": "tests/Fixtures/",
+            "PhpStreamIpc\\Tests\\Unit\\": "tests/Unit/"
         }
     },
     "authors": [
@@ -23,13 +23,9 @@
         }
     ],
     "require": {
-        "php": "^8.2",
-        "amphp/byte-stream": "^2.1",
-        "amphp/amp": "^3.1",
-        "amphp/process": "^2.0"
+        "php": "^8.2"
     },
     "require-dev": {
-        "phpunit/phpunit": "^12.1",
-        "dg/bypass-finals": "^1.9"
+        "phpunit/phpunit": "^12.1"
     }
 }

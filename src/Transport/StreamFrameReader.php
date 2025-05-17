@@ -4,91 +4,106 @@ declare(strict_types=1);
 
 namespace PhpStreamIpc\Transport;
 
-use Amp\ByteStream\ReadableResourceStream;
-use Amp\Cancellation;
-use Amp\Future;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Serialization\MessageSerializer;
+use RuntimeException;
 use Throwable;
-use function Amp\async;
+use function fread;
+use function feof;
 use function strlen;
 use function strpos;
 use function substr;
 use function unpack;
 
-/**
- * @internal
- */
 final class StreamFrameReader
 {
     public const MAGIC = "\xF3\x4A\x9D\xE2";
-    public const HEADER_SIZE = 8;
 
     private string $buffer = '';
 
     public function __construct(
-        private readonly ReadableResourceStream $stream,
+        private $stream,
         private readonly MessageSerializer $serializer,
-        private readonly int $maxFrame,
+        private readonly int $maxFrame
     ) {
     }
 
-    /**
-     * Reads a frame from the stream.
-     *
-     * @return Future<Message>
-     */
-    public function readFrame(?Cancellation $cancellation = null): Future
+    public function getStream()
     {
-        return async(function () use ($cancellation) {
-            while (!$cancellation?->isRequested()) {
-                $chunk = $this->stream->read($cancellation);
-                if ($chunk !== null) {
-                    $this->buffer .= $chunk;
+        return $this->stream;
+    }
+
+    /**
+     * @throws StreamClosedException
+     */
+    public function readFrameSync(): Message
+    {
+        $magicLen = strlen(self::MAGIC);
+
+        while (true) {
+            $chunk = fread($this->stream, 8192);
+            if ($chunk === '' || $chunk === false) {
+                if (feof($this->stream)) {
+                    if (strlen($this->buffer) === 0) {
+                        throw new StreamClosedException();
+                    }
+                    // otherwise, fall through and parse what's already in $this->buffer
+                } else {
+                    // no data right now, try again
+                    continue;
                 }
-
-                while (true) {
-                    $pos = strpos($this->buffer, self::MAGIC);
-                    if ($pos === false) {
-                        if (strlen($this->buffer) > strlen(self::MAGIC)) {
-                            $junk = $this->buffer;
-                            $this->buffer = '';
-                            return new LogMessage($junk, 'error');
-                        }
-                        break;
-                    }
-
-                    if ($pos > 0) {
-                        $junk = substr($this->buffer, 0, $pos);
-                        $this->buffer = substr($this->buffer, $pos);
-                        return new LogMessage($junk, 'error');
-                    }
-
-                    if (strlen($this->buffer) < self::HEADER_SIZE) {
-                        break;
-                    }
-
-                    $length = unpack('N', substr($this->buffer, 4, 4))[1];
-                    if ($length > $this->maxFrame) {
-                        $this->buffer = substr($this->buffer, 1);
-                        continue;
-                    }
-
-                    if (strlen($this->buffer) < self::HEADER_SIZE + $length) {
-                        break;
-                    }
-
-                    $payload = substr($this->buffer, self::HEADER_SIZE, $length);
-                    $this->buffer = substr($this->buffer, self::HEADER_SIZE + $length);
-
-                    try {
-                        return $this->serializer->deserialize($payload);
-                    } catch (Throwable $e) {
-                        return new LogMessage($payload, 'error');
-                    }
-                }
+            } else {
+                $this->buffer .= $chunk;
             }
-        });
+
+            $pos = strpos($this->buffer, self::MAGIC);
+
+            // no magic found yet
+            if ($pos === false) {
+                // if buffer is so big it can't possibly contain MAGIC any more...
+                if (strlen($this->buffer) > $magicLen) {
+                    // only discard up to the point where a full MAGIC could still begin
+                    $discard = strlen($this->buffer) - ($magicLen - 1);
+                    $junk    = substr($this->buffer, 0, $discard);
+                    $this->buffer = substr($this->buffer, $discard);
+                    return new LogMessage($junk, 'error');
+                }
+                continue;
+            }
+
+            // magic not at start → junk before it
+            if ($pos > 0) {
+                $junk = substr($this->buffer, 0, $pos);
+                $this->buffer = substr($this->buffer, $pos);
+                return new LogMessage($junk, 'error');
+            }
+
+            // too small to even contain length header
+            if (strlen($this->buffer) < 8) {
+                continue;
+            }
+
+            $length = unpack('N', substr($this->buffer, 4, 4))[1];
+            if ($length > $this->maxFrame) {
+                // skip one byte and re-search
+                $this->buffer = substr($this->buffer, 1);
+                continue;
+            }
+
+            // not arrived yet
+            if (strlen($this->buffer) < 8 + $length) {
+                continue;
+            }
+
+            $payload = substr($this->buffer, 8, $length);
+            $this->buffer = substr($this->buffer, 8 + $length);
+
+            try {
+                return $this->serializer->deserialize($payload);
+            } catch (Throwable $e) {
+                return new LogMessage($payload, 'error');
+            }
+        }
     }
 }

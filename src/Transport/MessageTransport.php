@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace PhpStreamIpc\Transport;
 
-use Amp\ByteStream\ClosedException;
-use Amp\Cancellation;
+use PhpStreamIpc\IpcSession;
 use PhpStreamIpc\Message\Message;
 
 /**
@@ -13,25 +12,17 @@ use PhpStreamIpc\Message\Message;
  *
  * Implementations of this interface should provide reliable and efficient means of transmitting messages
  * between processes or systems, while handling serialization, deserialization, and error handling.
- *
- * @package PhpStreamIpc\Transport
  */
 interface MessageTransport
 {
-    /**
-     * Sends a message through the transport.
-     *
-     * @param Message $message The message to send.
-     * @return void
-     */
     public function send(Message $message): void;
 
+
     /**
-     * Reads the next message from the transport.
+     * Drive I/O for all of these sessions at once.
      *
-     * @param Cancellation|null $cancellation Optional cancellation token to cancel the read operation.
-     * @return Message The received message as a Message instance.
-     * @throws ClosedException If the stream is closed and no more messages can be read.
+     * @param IpcSession[]    $sessions
+     * @param float|null      $timeout  seconds to wait (null = block indefinitely)
      */
-    public function read(?Cancellation $cancellation = null): Message;
+    public function tick(array $sessions, ?float $timeout = null): void;
 }

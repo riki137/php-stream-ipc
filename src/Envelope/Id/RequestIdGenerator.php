@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Envelope\Id;
 
 /**
- * Generates unique string identifiers for correlating IPC requests and responses.
+ * Defines the contract for generating unique string identifiers.
+ * These identifiers are used to correlate IPC requests with their corresponding responses.
  */
 interface RequestIdGenerator
 {
     /**
-     * Generate a new unique identifier for a request.
+     * Generates a new, unique string identifier.
      *
-     * @return string The generated request identifier.
+     * @return string A unique identifier, typically for an IPC request.
      */
     public function generate(): string;
 }

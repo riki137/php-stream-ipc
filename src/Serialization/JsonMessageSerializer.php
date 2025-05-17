@@ -12,27 +12,39 @@ use Throwable;
 use function class_exists;
 
 /**
- * Serializes Message objects to JSON, capturing all properties via reflection for deep reconstruction.
- * On JSON errors or unknown classes, returns a LogMessage with level 'error'.
+ * Serializes {@see Message} objects to and from JSON strings.
+ * This serializer uses reflection to access all object properties (including private and protected)
+ * and stores class information (`__class`) to enable deep reconstruction of the original object graph.
+ * If deserialization encounters issues (e.g., invalid JSON, unknown class), it returns a {@see LogMessage}
+ * with level 'error' containing the problematic data.
  */
 final readonly class JsonMessageSerializer implements MessageSerializer
 {
     /**
-     * Convert a Message object to a JSON string, including all private and protected properties.
+     * Serializes a {@see Message} object into a JSON string.
+     * The resulting JSON includes a `__class` key with the original class name and all its properties,
+     * including private and protected ones, to facilitate accurate deserialization.
      *
-     * @param Message $data The Message to encode.
-     * @return string JSON-encoded string representing the message.
-     * @throws JsonException If encoding fails.
+     * @param Message $data The {@see Message} object to serialize.
+     * @return string The JSON string representation of the message.
+     * @throws JsonException If JSON encoding fails.
      */
     public function serialize(Message $data): string
     {
         $array = $this->toArray($data);
-        return json_encode($array, JSON_THROW_ON_ERROR);
+        return json_encode(
+            $array,
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
     }
 
     /**
-     * Rebuild an associative array from any object, capturing private &
-     * protected props via reflection, including nested objects/arrays.
+     * Recursively converts an object into an associative array suitable for JSON serialization.
+     * Captures all properties (public, protected, private) using reflection.
+     * For nested objects, it includes a `__class` key with the object's class name.
+     *
+     * @param object $obj The object to convert.
+     * @return array Associative array representation of the object.
      */
     private function toArray(object $obj): array
     {
@@ -56,7 +68,11 @@ final readonly class JsonMessageSerializer implements MessageSerializer
     }
 
     /**
-     * Recursively handle arrays that may contain objects or nested arrays.
+     * Recursively processes an array, converting any nested objects to their array representations
+     * using {@see self::toArray()} and handling nested arrays with {@see self::arrayToArray()}.
+     *
+     * @param array $arr The array to process.
+     * @return array The processed array with nested objects converted.
      */
     private function arrayToArray(array $arr): array
     {
@@ -74,13 +90,13 @@ final readonly class JsonMessageSerializer implements MessageSerializer
     }
 
     /**
-     * Decode a JSON string into a Message instance.
+     * Deserializes a JSON string back into a {@see Message} object.
+     * It uses the `__class` metadata in the JSON to reconstruct the original object hierarchy.
+     * If deserialization fails due to invalid JSON, an unknown class, or instantiation issues,
+     * it returns a {@see LogMessage} with level 'error' and the original JSON data as its message.
      *
-     * On errors (invalid JSON, unknown class, instantiation failure),
-     * returns a LogMessage with level 'error'.
-     *
-     * @param string $data The JSON-encoded message payload.
-     * @return Message The reconstructed Message or a LogMessage on error.
+     * @param string $data The JSON string to deserialize.
+     * @return Message The deserialized {@see Message} object, or a {@see LogMessage} on error.
      */
     public function deserialize(string $data): Message
     {
@@ -124,7 +140,12 @@ final readonly class JsonMessageSerializer implements MessageSerializer
     }
 
     /**
-     * Reverse of toArray/arrayToArray: rehydrate nested arrays or objects.
+     * Recursively reconstructs objects and arrays from their array representations (from JSON decoding).
+     * If an array contains a `__class` key, it attempts to instantiate and populate that class.
+     * Otherwise, it processes the array as a plain associative or indexed array.
+     *
+     * @param mixed $data The data (typically an array) to reconstruct from.
+     * @return mixed The reconstructed object, array, or scalar value.
      */
     private function fromArray(mixed $data): mixed
     {

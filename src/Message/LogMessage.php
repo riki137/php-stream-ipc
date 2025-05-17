@@ -7,15 +7,16 @@ namespace PhpStreamIpc\Message;
 use PhpStreamIpc\Message\Message;
 
 /**
- * Represents a log entry carrying message text and severity level for IPC logging and error reporting.
+ * A simple message structure for transporting log entries or error reports via IPC.
+ * It carries a string message and an associated severity level.
  */
 final readonly class LogMessage implements Message
 {
     /**
-     * LogMessage constructor.
+     * Constructs a new LogMessage.
      *
-     * @param string $message The log message or raw payload.
-     * @param string $level   The log severity level (e.g., 'info', 'error').
+     * @param string $message The textual content of the log entry or error.
+     * @param string $level The severity level of the log entry (e.g., 'info', 'warning', 'error'). Defaults to 'info'.
      */
     public function __construct(public string $message, public string $level = 'info')
     {

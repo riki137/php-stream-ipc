@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Message;
 
 /**
- * Marker interface for objects transmitted over the IPC system.
+ * A marker interface indicating that an object can be transmitted as a message over the IPC system.
+ * Implementing classes are typically data transfer objects (DTOs) or simple commands/events.
  */
 interface Message
 {

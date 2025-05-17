@@ -7,15 +7,17 @@ namespace PhpStreamIpc\Envelope;
 use PhpStreamIpc\Message\Message;
 
 /**
- * Wraps a response Message with its request identifier to complete the request–response cycle.
+ * Represents a response message wrapped with the identifier of the original request.
+ * This envelope is used to transport a {@see Message} that is a reply to a previous request,
+ * identified by the `id`.
  */
 final readonly class ResponseEnvelope implements Message
 {
     /**
-     * ResponseEnvelope constructor.
+     * Constructs a new ResponseEnvelope.
      *
-     * @param string $id The identifier of the original request.
-     * @param Message $response The response message payload.
+     * @param string $id The unique identifier of the original {@see RequestEnvelope} this response corresponds to.
+     * @param Message $response The actual {@see Message} payload of the response.
      */
     public function __construct(public string $id, public Message $response)
     {

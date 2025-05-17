@@ -3,115 +3,87 @@ declare(strict_types=1);
 
 namespace PhpStreamIpc;
 
-use Amp\ByteStream\ReadableResourceStream;
-use Amp\ByteStream\WritableResourceStream;
-use Amp\Process\Process;
 use PhpStreamIpc\Envelope\Id\PidHrtimeRequestIdGenerator;
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
-use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Serialization\MessageSerializer;
 use PhpStreamIpc\Serialization\NativeMessageSerializer;
 use PhpStreamIpc\Transport\FramedStreamMessageTransport;
 use PhpStreamIpc\Transport\MessageTransport;
-use function Amp\ByteStream\getStdin;
-use function Amp\ByteStream\getStdout;
+use PhpStreamIpc\Transport\StreamClosedException;
 
 /**
- * Entry point for IPC operations, creating and managing multiple IpcSession instances over stdio, pipes, or child processes.
- * Enables broadcasting notifications, orchestrating request/response exchanges, and configuring custom serializers and ID generators.
+ * Manages IPC sessions for communication over stdio, pipes, or child processes.
+ * Facilitates creating sessions, broadcasting notifications, and configuring serialization and request ID generation.
  */
 final class IpcPeer
 {
-    /**
-     * Default timeout for request/response in seconds.
-     */
-    public const DEFAULT_TIMEOUT = 0.5;
-
     /** @var IpcSession[] Active sessions created by this peer */
     private array $sessions = [];
 
-    /**
-     * @param MessageSerializer $serializer Serializer to encode/decode Message objects.
-     * @param RequestIdGenerator $idGen Generates unique IDs for requests.
-     * @param float $timeout Timeout (in seconds) for request() before failure. Defaults to 0.5 because stdio should be very fast.
-     */
+    private MessageSerializer $defaultSerializer;
+
+    private RequestIdGenerator $idGen;
+
     public function __construct(
-        private readonly MessageSerializer $defaultSerializer = new NativeMessageSerializer(),
-        private readonly RequestIdGenerator $idGen = new PidHrtimeRequestIdGenerator(),
-        private readonly float $timeout = self::DEFAULT_TIMEOUT,
+        ?MessageSerializer $defaultSerializer = null,
+        ?RequestIdGenerator $idGen = null
     ) {
+        $this->defaultSerializer = $defaultSerializer ?? new NativeMessageSerializer();
+        $this->idGen = $idGen ?? new PidHrtimeRequestIdGenerator();
     }
 
-    /**
-     * Instantiate a new IpcSession on the provided streams.
-     *
-     * @return IpcSession A new session you can notify(), request(), etc.
-     */
     public function createSession(MessageTransport $transport): IpcSession
     {
-        $session = new IpcSession(
-            $transport,
-            $this->idGen,
-            $this->timeout
-        );
+        $session = new IpcSession($this, $transport, $this->idGen);
         $this->sessions[] = $session;
         return $session;
     }
 
-    /**
-     * Shortcut to create a session over PHP streams (stdio, pipes).
-     *
-     * @param WritableResourceStream $write
-     * @param ReadableResourceStream $read
-     * @param ReadableResourceStream|null $read2 Optionally a second read stream (e.g. stderr).
-     * @return IpcSession
-     */
-    public function createStreamSession(
-        WritableResourceStream $write,
-        ReadableResourceStream $read,
-        ?ReadableResourceStream $read2 = null,
-    ): IpcSession {
-        return $this->createSession(new FramedStreamMessageTransport(
-            $write,
-            [$read, ...($read2 !== null ? [$read2] : [])],
-            $this->defaultSerializer
-        ));
-    }
-
-    /**
-     * Bind a session to the current process's STDIN/STDOUT.
-     *
-     * @return IpcSession
-     */
-    public function createStdioSession(): IpcSession
+    public function createStreamSession($write, $read, $read2 = null): IpcSession
     {
-        return $this->createStreamSession(getStdout(), getStdin());
-    }
-
-    /**
-     * Connect to an AMPHP child Process over its stdio/stderr.
-     *
-     * @param Process $proc
-     * @return IpcSession
-     */
-    public function createProcessSession(Process $proc): IpcSession
-    {
-        return $this->createStreamSession(
-            $proc->getStdin(),
-            $proc->getStdout(),
-            $proc->getStderr(),
+        $reads = [$read];
+        if ($read2 !== null) {
+            $reads[] = $read2;
+        }
+        return $this->createSession(
+            new FramedStreamMessageTransport(
+                $write,
+                $reads,
+                $this->defaultSerializer
+            )
         );
     }
 
-    /**
-     * Send a notification message to **all** active sessions.
-     *
-     * @param Message $msg The notification to broadcast.
-     */
-    public function broadcast(Message $msg): void
+    public function createStdioSession(): IpcSession
     {
-        foreach ($this->sessions as $sess) {
-            $sess->notify($msg);
+        return $this->createStreamSession(STDOUT, STDIN);
+    }
+
+    public function removeSession(IpcSession $session): void
+    {
+        $this->sessions = array_filter($this->sessions, fn($s) => $s !== $session);
+    }
+
+    /**
+     * Perform a single stream_select over all session streams, then dispatch.
+     *
+     * @param float|null $timeout in seconds (null = block indefinitely)
+     */
+    public function tick(?float $timeout = null): void
+    {
+        foreach ($this->sessions as $s) {
+            $s->getTransport()->tick($this->sessions, $timeout);
+            return;
+        }
+    }
+
+    public function tickFor(float $seconds): void
+    {
+        $start = microtime(true);
+        while ($seconds > 0) {
+            $this->tick($seconds);
+            $seconds -= microtime(true) - $start;
+            $start = microtime(true);
         }
     }
 }

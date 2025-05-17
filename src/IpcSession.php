@@ -3,256 +3,134 @@ declare(strict_types=1);
 
 namespace PhpStreamIpc;
 
-use Amp\ByteStream\ClosedException;
-use Amp\Cancellation;
-use Amp\CancelledException;
-use Amp\CompositeCancellation;
-use Amp\DeferredCancellation;
-use Amp\DeferredFuture;
-use Amp\Future;
-use Amp\TimeoutException;
-use Closure;
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
 use PhpStreamIpc\Envelope\RequestEnvelope;
 use PhpStreamIpc\Envelope\ResponseEnvelope;
+use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Transport\MessageTransport;
-use Throwable;
-use function Amp\async;
-use function Amp\delay;
+use PhpStreamIpc\Transport\TimeoutException;
 
 /**
- * Manages an IPC session lifecycle:
- * - Sends and receives Message objects asynchronously
- * - Processes Request and Response envelopes with unique IDs
- * - Supports notification and request handlers with automatic event loop ticking
- * - Enforces request timeouts and supports cancellation
+ * Handles the lifecycle of an IPC session.
+ * - Sends and receives {@see Message} objects asynchronously.
+ * - Supports registering handlers for notifications and requests, driven by an internal event loop.
+ * - Manages request timeouts and cancellation.
  */
 final class IpcSession
 {
+    /** @var array<callable(Message, IpcSession): void> Pending message handlers, indexed by handler ID */
     private array $messageHandlers = [];
 
+    /** @var array<callable(Message, IpcSession): Message|null> Pending request handlers, indexed by handler ID */
     private array $requestHandlers = [];
 
-    private array $pendingResponses = [];
-
-    private array $timeouts = [];
-
-    private readonly DeferredCancellation $defCancellation;
-
-    private readonly Cancellation $cancellation;
-
-    private Future $loop;
+    /** @var array<string, Message> Pending responses, indexed by request ID */
+    private array $responses = [];
 
     public function __construct(
+        private readonly IpcPeer $peer,
         private readonly MessageTransport $transport,
-        private readonly RequestIdGenerator $idGen,
-        private readonly float $timeout
+        private readonly RequestIdGenerator $idGen
     ) {
-        $this->defCancellation = new DeferredCancellation();
-        $this->cancellation = $this->defCancellation->getCancellation();
-        $this->cancellation->subscribe(function (Throwable $e): void {
-            foreach ($this->pendingResponses as $d) {
-                $d->error($e);
-            }
-            foreach ($this->timeouts as $t) {
-                $t->cancel();
-            }
-        });
-        $this->loop = async(function () {
-            while (!$this->cancellation->isRequested()) {
-                $this->tick($this->cancellation);
-            }
-        });
     }
 
-    /**
-     * Send a notification message without expecting a response.
-     *
-     * @param Message $msg The notification message to send.
-     * @return void
-     */
+    public function getTransport(): MessageTransport
+    {
+        return $this->transport;
+    }
+
+    public function dispatch(Message $envelope): void
+    {
+        try {
+            if ($envelope instanceof RequestEnvelope) {
+                foreach ($this->requestHandlers as $h) {
+                    $resp = $h($envelope->request, $this);
+                    if ($resp instanceof Message) {
+                        $this->transport->send(
+                            new ResponseEnvelope($envelope->id, $resp)
+                        );
+                        break;
+                    }
+                }
+            } elseif ($envelope instanceof ResponseEnvelope) {
+                $this->responses[$envelope->id] = $envelope->response;
+            } else {
+                foreach ($this->messageHandlers as $h) {
+                    $h($envelope, $this);
+                }
+            }
+        } catch (\Throwable $e) {
+            $this->transport->send(
+                new LogMessage('Error in dispatch: ' . $e->getMessage(), 'error')
+            );
+        }
+    }
+
     public function notify(Message $msg): void
     {
         $this->transport->send($msg);
     }
 
-    /**
-     * Send a request message and return a future for the corresponding response.
-     *
-     * @param Message $msg The request message to send.
-     * @param Cancellation|null $cancellation Optional cancellation token.
-     * @return Future<Message> Future resolving to the response message.
-     */
-    public function request(Message $msg, ?Cancellation $cancellation = null): Future
+    public function request(Message $msg, ?float $timeout = null): Message
     {
-        $cancel = $cancellation !== null
-            ? new CompositeCancellation($cancellation, $this->cancellation)
-            : $this->cancellation;
-
         $id = $this->idGen->generate();
         $this->transport->send(new RequestEnvelope($id, $msg));
 
-        $deferred = new DeferredFuture();
-        $this->pendingResponses[$id] = $deferred;
+        $start = microtime(true);
+        while (!isset($this->responses[$id])) {
+            $elapsed = microtime(true) - $start;
 
-        $timerCancel = new DeferredCancellation();
-        $this->timeouts[$id] = $timerCancel;
-
-        async(function () use ($id, $timerCancel, $cancel) {
-            try {
-                delay($this->timeout, true, $cancel);
-                if (isset($this->pendingResponses[$id])) {
-                    $this->pendingResponses[$id]->error(new TimeoutException('Request timed out'));
-                    unset($this->pendingResponses[$id], $this->timeouts[$id]);
+            if ($timeout !== null) {
+                $remaining = $timeout - $elapsed;
+                if ($remaining <= 0) {
+                    throw new TimeoutException("IPC request timed out after {$timeout}s");
                 }
-            } catch (CancelledException $e) {
-                // ignore
+            } else {
+                $remaining = null; // block indefinitely if no timeout was given
             }
-        });
 
-        return $deferred->getFuture();
+            // now pass the remaining time (or null) into tick()
+            $this->peer->tick($remaining);
+        }
+
+        $resp = $this->responses[$id];
+        unset($this->responses[$id]);
+        return $resp;
     }
 
-    /**
-     * Receive the next incoming message as a future.
-     *
-     * @param Cancellation|null $cancellation Optional cancellation token.
-     * @return Future<Message> Future resolving to the received message.
-     */
-    public function receive(?Cancellation $cancellation = null): Future
-    {
-        $cancel = $cancellation !== null
-            ? new CompositeCancellation($cancellation, $this->cancellation)
-            : $this->cancellation;
-
-        $deferred = new DeferredFuture();
-
-        $handler = $cancelId = null;
-        $cancelId = $cancel->subscribe(function (Throwable $e) use ($deferred, &$handler) {
-            $this->offMessage($handler);
-            if (!$deferred->isComplete()) {
-                $deferred->error($e);
-            }
-        });
-        $handler = function (Message $msg) use ($cancel, &$cancelId, $deferred, &$handler) {
-            $this->offMessage($handler);
-            $cancel->unsubscribe($cancelId);
-            $deferred->complete($msg);
-        };
-
-        $this->onMessage($handler);
-
-        return $deferred->getFuture();
-    }
-
-    /**
-     * Register a handler for incoming notification messages.
-     *
-     * @param Closure(Message, IpcSession): void $handler Handler invoked on each message.
-     * @return void
-     */
-    public function onMessage(Closure $handler): void
+    public function onMessage(callable $handler): void
     {
         $this->messageHandlers[] = $handler;
     }
 
-    /**
-     * Unregister a previously registered notification handler.
-     *
-     * @param Closure(Message, IpcSession): void $handler Handler to remove.
-     * @return void
-     */
-    public function offMessage(Closure $handler): void
+    public function offMessage(callable $handler): void
     {
         foreach ($this->messageHandlers as $i => $h) {
-            if (spl_object_id($h) === spl_object_id($handler)) {
+            if ($h === $handler) {
                 unset($this->messageHandlers[$i]);
-                return;
+                break;
             }
         }
     }
 
-    /**
-     * Register a handler for incoming request messages.
-     *
-     * @param Closure(Message, IpcSession): Message|null $handler Handler that processes a request and optionally returns a response.
-     * @return void
-     */
-    public function onRequest(Closure $handler): void
+    public function onRequest(callable $handler): void
     {
         $this->requestHandlers[] = $handler;
     }
 
-    /**
-     * Unregister a previously registered request handler.
-     *
-     * @param Closure(Message, IpcSession): Message|null $handler Handler to remove.
-     * @return void
-     */
-    public function offRequest(Closure $handler): void
+    public function offRequest(callable $handler): void
     {
         foreach ($this->requestHandlers as $i => $h) {
-            if (spl_object_id($h) === spl_object_id($handler)) {
+            if ($h === $handler) {
                 unset($this->requestHandlers[$i]);
-                return;
+                break;
             }
         }
     }
 
-    /**
-     * Read and process a single incoming envelope, dispatching to the appropriate handlers.
-     *
-     * @param Cancellation|null $cancellation Optional cancellation token for this tick.
-     * @throws ClosedException If the stream is closed and no more messages can be read.
-     * @return void
-     */
-    public function tick(?Cancellation $cancellation = null): void
-    {
-        $cancel = $cancellation !== null
-            ? new CompositeCancellation($cancellation, $this->cancellation)
-            : $this->cancellation;
-
-        $envelope = $this->transport->read($cancel);
-
-        if ($envelope instanceof RequestEnvelope) {
-            foreach ($this->requestHandlers as $h) {
-                $resp = $h($envelope->request, $this);
-                if ($resp instanceof Message) {
-                    $this->transport->send(new ResponseEnvelope($envelope->id, $resp));
-                    break;
-                }
-            }
-            return;
-        }
-
-        if ($envelope instanceof ResponseEnvelope) {
-            $id = $envelope->id;
-            if (isset($this->pendingResponses[$id])) {
-                $this->pendingResponses[$id]->complete($envelope->response);
-                $this->timeouts[$id]->cancel();
-                unset($this->pendingResponses[$id], $this->timeouts[$id]);
-            }
-            return;
-        }
-
-        foreach ($this->messageHandlers as $h) {
-            $h($envelope, $this);
-        }
-    }
-
-    /**
-     * Close the session, cancelling all pending operations and stopping the processing loop.
-     *
-     * @return void
-     */
     public function close(): void
     {
-        try {
-            $this->defCancellation->cancel();
-            $this->loop->await();
-        } catch (CancelledException $e) {
-            // ignore
-        }
+        $this->peer->removeSession($this);
     }
 }

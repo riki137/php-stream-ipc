@@ -7,23 +7,23 @@ namespace PhpStreamIpc\Serialization;
 use PhpStreamIpc\Message\Message;
 
 /**
- * Serializes and deserializes Message objects to and from string payloads for IPC transport.
+ * Serializes and deserializes {@see Message} objects to and from string payloads for Inter-Process Communication (IPC).
  */
 interface MessageSerializer
 {
     /**
-     * Convert a Message into a string payload.
+     * Serializes a {@see Message} object into a string representation.
      *
-     * @param Message $data The Message instance to serialize.
-     * @return string The serialized string payload.
+     * @param Message $data The {@see Message} object to serialize.
+     * @return string The serialized string representation of the message.
      */
     public function serialize(Message $data): string;
 
     /**
-     * Deserialize a string payload into a Message instance.
+     * Deserializes a string payload back into a {@see Message} object.
      *
-     * @param string $data The serialized message payload.
-     * @return Message The deserialized Message object.
+     * @param string $data The string payload to deserialize.
+     * @return Message The deserialized {@see Message} object.
      */
     public function deserialize(string $data): Message;
 }
