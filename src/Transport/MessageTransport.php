@@ -19,10 +19,15 @@ interface MessageTransport
 
 
     /**
-     * Drive I/O for all of these sessions at once.
+     * Drives I/O for all specified IPC sessions that use this transport.
+     * This method should typically be called in a loop to process incoming messages and manage stream activity.
+     * Implementations might use mechanisms like `stream_select` to efficiently wait for data on multiple streams.
      *
-     * @param IpcSession[]    $sessions
-     * @param float|null      $timeout  seconds to wait (null = block indefinitely)
+     * @param IpcSession[] $sessions An array of IpcSession objects whose I/O should be processed.
+     *                               All sessions must be using this transport instance.
+     * @param float|null $timeout The maximum time in seconds to wait for I/O activity. 
+     *                            A value of `null` means to block indefinitely until activity occurs.
+     *                            A value of `0` means to check for I/O without blocking.
      */
     public function tick(array $sessions, ?float $timeout = null): void;
 }
