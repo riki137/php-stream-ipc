@@ -7,10 +7,9 @@ namespace PhpStreamIpc\Transport;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Serialization\MessageSerializer;
-use RuntimeException;
 use Throwable;
-use function fread;
 use function feof;
+use function fread;
 use function strlen;
 use function strpos;
 use function substr;
@@ -100,7 +99,7 @@ final class StreamFrameReader
                 if ($pos === false) {
                     if (strlen($this->buffer) > $magicLen) {
                         // only inspect at most (magicLen-1) bytes:
-                        $overlap  = $this->getOverlapLength();
+                        $overlap = $this->getOverlapLength();
                         if ($overlap > 0) {
                             // emit the true junk
                             $messages[] = new LogMessage(substr($this->buffer, 0, -$overlap), 'error');
@@ -183,5 +182,4 @@ final class StreamFrameReader
 
         return 0;
     }
-
 }

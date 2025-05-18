@@ -17,6 +17,7 @@ final class MessagePromise
 {
     /** @var ?Message The response message, null if not yet received. */
     private ?Message $response = null;
+
     /** @var float The timestamp when the promise was created, used for timeout calculation. */
     private float $start;
 
@@ -34,8 +35,7 @@ final class MessagePromise
         private readonly IpcSession $session,
         private readonly string $id,
         private readonly ?float $timeout
-    )
-    {
+    ) {
         $this->start = microtime(true);
     }
 

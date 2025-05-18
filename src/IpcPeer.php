@@ -9,7 +9,6 @@ use PhpStreamIpc\Serialization\MessageSerializer;
 use PhpStreamIpc\Serialization\NativeMessageSerializer;
 use PhpStreamIpc\Transport\FramedStreamMessageTransport;
 use PhpStreamIpc\Transport\MessageTransport;
-use PhpStreamIpc\Transport\StreamClosedException;
 
 /**
  * Manages IPC sessions for communication over stdio, pipes, or child processes.

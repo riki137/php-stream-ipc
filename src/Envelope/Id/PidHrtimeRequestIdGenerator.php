@@ -12,6 +12,7 @@ namespace PhpStreamIpc\Envelope\Id;
 final class PidHrtimeRequestIdGenerator implements RequestIdGenerator
 {
     private static ?string $pid = null;
+
     private static int $counter = 0;
 
     /**

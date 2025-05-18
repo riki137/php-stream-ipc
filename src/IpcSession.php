@@ -10,7 +10,7 @@ use PhpStreamIpc\Envelope\ResponseEnvelope;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Transport\MessageTransport;
-use PhpStreamIpc\Transport\TimeoutException;
+use Throwable;
 
 /**
  * Handles the lifecycle of an IPC session.
@@ -81,7 +81,7 @@ final class IpcSession
                     $h($envelope, $this);
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->transport->send(
                 new LogMessage('Error in dispatch: ' . $e->getMessage(), 'error')
             );
