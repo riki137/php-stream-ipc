@@ -26,6 +26,13 @@ final class StreamFrameReader
 {
     public const MAGIC = "\xF3\x4A\x9D\xE2";
 
+    /** Precomputed all non-empty prefixes of MAGIC, ordered longest→shortest */
+    private const MAGIC_PREFIXES = [
+        3 => "\xF3\x4A\x9D",
+        2 => "\xF3\x4A",
+        1 => "\xF3",
+    ];
+
     private string $buffer = '';
 
     /**
@@ -91,15 +98,21 @@ final class StreamFrameReader
 
                 // -- no magic at all yet
                 if ($pos === false) {
-                    // if buffer grows too large with no magic, drop the excess as error
                     if (strlen($this->buffer) > $magicLen) {
-                        $discard = strlen($this->buffer) - ($magicLen - 1);
-                        $junk    = substr($this->buffer, 0, $discard);
-                        $this->buffer = substr($this->buffer, $discard);
-                        $messages[] = new LogMessage($junk, 'error');
-                        continue;
+                        // only inspect at most (magicLen-1) bytes:
+                        $overlap  = $this->getOverlapLength();
+                        if ($overlap > 0) {
+                            // emit the true junk
+                            $messages[] = new LogMessage(substr($this->buffer, 0, -$overlap), 'error');
+                            // keep just the potential MAGIC prefix
+                            $this->buffer = substr($this->buffer, -$overlap);
+                        } else {
+                            // emit the whole buffer as junk
+                            $messages[] = new LogMessage($this->buffer, 'error');
+                            $this->buffer = '';
+                        }
+                        break;
                     }
-                    break;
                 }
 
                 // -- junk before magic
@@ -147,4 +160,28 @@ final class StreamFrameReader
             // otherwise, loop back and read more
         }
     }
+
+    /**
+     * Only looks at the last up to (magicLen-1) bytes and
+     * returns how many of them match the start of MAGIC.
+     */
+    private function getOverlapLength(): int
+    {
+        $bufLen = strlen($this->buffer);
+        foreach (self::MAGIC_PREFIXES as $len => $prefix) {
+            if ($bufLen >= $len
+                && substr_compare(
+                    $this->buffer,
+                    $prefix,
+                    $bufLen - $len,
+                    $len
+                ) === 0
+            ) {
+                return $len;
+            }
+        }
+
+        return 0;
+    }
+
 }
