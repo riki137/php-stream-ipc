@@ -57,15 +57,32 @@ final class FramedStreamMessageTransport implements MessageTransport
      * The message is serialized, prefixed with a magic number and its length, and then written to the stream.
      *
      * @param Message $message The message to send.
+     * @throws StreamClosedException If the write stream is closed (e.g. broken pipe) or write fails.
      */
     public function send(Message $message): void
     {
         $payload = $this->serializer->serialize($message);
-        fwrite(
-            $this->writeStream,
-            StreamFrameReader::MAGIC . pack('N', strlen($payload)) . $payload
-        );
-        fflush($this->writeStream);
+        $data    = StreamFrameReader::MAGIC . pack('N', strlen($payload)) . $payload;
+
+        // Clear any previous PHP error
+        if (function_exists('error_clear_last')) {
+            error_clear_last();
+        }
+
+        // Suppress the warning and attempt to write
+        $bytesWritten = @fwrite($this->writeStream, $data);
+
+        // Check for any "Broken pipe" error
+        $lastError = error_get_last();
+        if ($lastError !== null && stripos($lastError['message'], 'Broken pipe') !== false) {
+            throw new StreamClosedException('Broken pipe while writing to stream:' . $lastError['message']);
+        }
+
+        if ($bytesWritten === false) {
+            throw new StreamClosedException('Unable to write payload to stream');
+        } else {
+            fflush($this->writeStream);
+        }
     }
 
     /**

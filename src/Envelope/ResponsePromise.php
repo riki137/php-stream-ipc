@@ -13,7 +13,7 @@ use PhpStreamIpc\Transport\TimeoutException;
  * Represents a pending IPC message that is expected to receive a response.
  * This class allows awaiting the response, handling potential timeouts.
  */
-final class MessagePromise
+final class ResponsePromise
 {
     /** @var ?Message The response message, null if not yet received. */
     private ?Message $response = null;

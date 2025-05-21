@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc;
 
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
-use PhpStreamIpc\Envelope\MessagePromise;
+use PhpStreamIpc\Envelope\ResponsePromise;
 use PhpStreamIpc\Envelope\RequestEnvelope;
 use PhpStreamIpc\Envelope\ResponseEnvelope;
 use PhpStreamIpc\Message\LogMessage;
@@ -103,13 +103,13 @@ final class IpcSession
      *
      * @param Message $msg The request message to send.
      * @param float|null $timeout Optional timeout in seconds. If null, waits indefinitely.
-     * @return MessagePromise The response message promise.
+     * @return ResponsePromise The response message promise.
      */
-    public function request(Message $msg, ?float $timeout = null): MessagePromise
+    public function request(Message $msg, ?float $timeout = null): ResponsePromise
     {
         $id = $this->idGen->generate();
         $this->transport->send(new RequestEnvelope($id, $msg));
-        return new MessagePromise($this->peer, $this, $id, $timeout);
+        return new ResponsePromise($this->peer, $this, $id, $timeout);
     }
 
     /**

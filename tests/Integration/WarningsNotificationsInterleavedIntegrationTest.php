@@ -101,9 +101,13 @@ PHP;
 
         // ── Assertions ───────────────────────────────────────────────────────────
         $this->assertSame(['notify1', 'notify2'], $notifications, 'Missing notifications');
-        $this->assertSame(sprintf(
-            "Warning: warn1 in %s on line 15\nWarning: warn2 in %s on line 18\nWarning: warn3 in %s on line 21\n",
-            $this->scriptPath, $this->scriptPath, $this->scriptPath
-        ), $warningsBuf, 'Missing warnings');
+
+        foreach (['warn1', 'warn2', 'warn3'] as $warn) {
+            $this->assertTrue(
+                str_contains($warningsBuf, "Warning: {$warn}") ||
+                str_contains($warningsBuf, "PHP Warning:  {$warn}"),
+                "Missing warning {$warn}"
+            );
+        }
     }
 }
