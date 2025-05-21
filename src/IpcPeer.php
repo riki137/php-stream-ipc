@@ -101,9 +101,18 @@ final class IpcPeer
      */
     public function tick(?float $timeout = null): void
     {
-        foreach ($this->sessions as $s) {
-            $s->getTransport()->tick($this->sessions, $timeout);
+        if ($this->sessions === []) {
             return;
+        }
+
+        $byTransport = [];
+        foreach ($this->sessions as $session) {
+            $class = $session->getTransport()::class;
+            $byTransport[$class][] = $session;
+        }
+
+        foreach ($byTransport as $sessions) {
+            $sessions[0]->getTransport()->tick($sessions, $timeout);
         }
     }
 
