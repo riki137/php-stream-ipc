@@ -60,11 +60,12 @@ final class IpcSession
      * Otherwise, it's passed to general message handlers.
      *
      * @param Message $envelope The incoming message (can be a RequestEnvelope, ResponseEnvelope, or other Message).
+     * @throws Throwable (anything thrown by an onMessage handler)
      */
     public function dispatch(Message $envelope): void
     {
-        try {
-            if ($envelope instanceof RequestEnvelope) {
+        if ($envelope instanceof RequestEnvelope) {
+            try {
                 foreach ($this->requestHandlers as $h) {
                     $resp = $h($envelope->request, $this);
                     if ($resp instanceof Message) {
@@ -74,17 +75,26 @@ final class IpcSession
                         break;
                     }
                 }
-            } elseif ($envelope instanceof ResponseEnvelope) {
-                $this->responses[$envelope->id] = $envelope->response;
-            } else {
+            } catch (Throwable $e) {
+                $this->transport->send(
+                    new LogMessage('Error in dispatch: ' . $e->getMessage(), 'error')
+                );
+            }
+        } elseif ($envelope instanceof ResponseEnvelope) {
+            $this->responses[$envelope->id] = $envelope->response;
+        } else {
+            $exception = null;
+            try {
                 foreach ($this->messageHandlers as $h) {
                     $h($envelope, $this);
                 }
+            } catch (Throwable $e) {
+                $exception = $e;
+            } finally {
+                if ($exception !== null) {
+                    throw $exception;
+                }
             }
-        } catch (Throwable $e) {
-            $this->transport->send(
-                new LogMessage('Error in dispatch: ' . $e->getMessage(), 'error')
-            );
         }
     }
 

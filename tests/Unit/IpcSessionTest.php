@@ -47,11 +47,11 @@ final class IpcSessionTest extends TestCase
         $transport = new FakeTransport();
         $session = $peer->createSession($transport);
 
-        $session->onMessage(function () {
+        $session->onRequest(function () {
             throw new \RuntimeException('boom');
         });
 
-        $session->dispatch(new SimpleMessage('test'));
+        $session->dispatch(new RequestEnvelope('123', new SimpleMessage('test')));
 
         $this->assertCount(1, $transport->sent);
         $this->assertInstanceOf(LogMessage::class, $transport->sent[0]);
