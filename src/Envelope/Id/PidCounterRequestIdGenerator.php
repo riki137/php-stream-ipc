@@ -9,7 +9,7 @@ namespace PhpStreamIpc\Envelope\Id;
  * This generator aims to create IDs that are unique across different processes and impossible to collide
  * even with rapid generation within the same process.
  */
-final class PidHrtimeRequestIdGenerator implements RequestIdGenerator
+final class PidCounterRequestIdGenerator implements RequestIdGenerator
 {
     private static ?string $pid = null;
 

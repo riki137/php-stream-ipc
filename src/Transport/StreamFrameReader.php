@@ -25,12 +25,21 @@ final class StreamFrameReader
 {
     public const MAGIC = "\xF3\x4A\x9D\xE2";
 
-    /** Precomputed all non-empty prefixes of MAGIC, ordered longest→shortest */
-    private const MAGIC_PREFIXES = [
-        3 => "\xF3\x4A\x9D",
-        2 => "\xF3\x4A",
-        1 => "\xF3",
-    ];
+    /** @var array<int,string> */
+    private static array $magicPrefixes = [];
+
+    private static function initMagicPrefixes(): void
+    {
+        if (self::$magicPrefixes !== []) {
+            return;
+        }
+
+        $magic = self::MAGIC;
+        $len = strlen($magic);
+        for ($i = $len - 1; $i >= 1; $i--) {
+            self::$magicPrefixes[$i] = substr($magic, 0, $i);
+        }
+    }
 
     private string $buffer = '';
 
@@ -46,6 +55,7 @@ final class StreamFrameReader
         private readonly MessageSerializer $serializer,
         private readonly int $maxFrame
     ) {
+        self::initMagicPrefixes();
     }
 
     /**
@@ -167,7 +177,8 @@ final class StreamFrameReader
     private function getOverlapLength(): int
     {
         $bufLen = strlen($this->buffer);
-        foreach (self::MAGIC_PREFIXES as $len => $prefix) {
+        self::initMagicPrefixes();
+        foreach (self::$magicPrefixes as $len => $prefix) {
             if ($bufLen >= $len
                 && substr_compare(
                     $this->buffer,

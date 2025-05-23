@@ -1,7 +1,7 @@
 <?php
 namespace PhpStreamIpc\Tests\Unit;
 
-use PhpStreamIpc\Envelope\Id\PidHrtimeRequestIdGenerator;
+use PhpStreamIpc\Envelope\Id\PidCounterRequestIdGenerator;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 
@@ -9,10 +9,10 @@ final class PidHrtimeRequestIdGeneratorTest extends TestCase
 {
     private function resetGenerator(): void
     {
-        $pidProp = new ReflectionProperty(PidHrtimeRequestIdGenerator::class, 'pid');
+        $pidProp = new ReflectionProperty(PidCounterRequestIdGenerator::class, 'pid');
         $pidProp->setAccessible(true);
         $pidProp->setValue(null, null);
-        $counterProp = new ReflectionProperty(PidHrtimeRequestIdGenerator::class, 'counter');
+        $counterProp = new ReflectionProperty(PidCounterRequestIdGenerator::class, 'counter');
         $counterProp->setAccessible(true);
         $counterProp->setValue(null, 0);
     }
@@ -20,7 +20,7 @@ final class PidHrtimeRequestIdGeneratorTest extends TestCase
     public function testGeneratesIncreasingIds(): void
     {
         $this->resetGenerator();
-        $gen = new PidHrtimeRequestIdGenerator();
+        $gen = new PidCounterRequestIdGenerator();
         $id1 = $gen->generate();
         $id2 = $gen->generate();
 

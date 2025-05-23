@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace PhpStreamIpc;
 
-use PhpStreamIpc\Envelope\Id\PidHrtimeRequestIdGenerator;
+use PhpStreamIpc\Envelope\Id\PidCounterRequestIdGenerator;
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
 use PhpStreamIpc\Serialization\MessageSerializer;
 use PhpStreamIpc\Serialization\NativeMessageSerializer;
@@ -34,7 +34,7 @@ final class IpcPeer
         ?RequestIdGenerator $idGen = null
     ) {
         $this->defaultSerializer = $defaultSerializer ?? new NativeMessageSerializer();
-        $this->idGen = $idGen ?? new PidHrtimeRequestIdGenerator();
+        $this->idGen = $idGen ?? new PidCounterRequestIdGenerator();
     }
 
     /**

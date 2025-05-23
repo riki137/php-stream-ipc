@@ -59,4 +59,27 @@ final class StreamFrameReaderTest extends TestCase
         $this->assertInstanceOf(LogMessage::class, $msgs[0]);
         $this->assertSame($payload, $msgs[0]->message);
     }
+
+    public function testOverlapLengthDetectsPrefixes(): void
+    {
+        $ser = new NativeMessageSerializer();
+        $reader = new StreamFrameReader($this->createStream(''), $ser, 1024);
+
+        $ref = new \ReflectionClass(StreamFrameReader::class);
+        $bufProp = $ref->getProperty('buffer');
+        $bufProp->setAccessible(true);
+        $method = $ref->getMethod('getOverlapLength');
+        $method->setAccessible(true);
+
+        $magic = StreamFrameReader::MAGIC;
+        $magicLen = strlen($magic);
+
+        for ($i = 1; $i < $magicLen; $i++) {
+            $bufProp->setValue($reader, substr($magic, 0, $i));
+            $this->assertSame($i, $method->invoke($reader));
+        }
+
+        $bufProp->setValue($reader, 'junk');
+        $this->assertSame(0, $method->invoke($reader));
+    }
 }
