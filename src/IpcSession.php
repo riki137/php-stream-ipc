@@ -14,7 +14,7 @@ use Throwable;
 
 /**
  * Handles the lifecycle of an IPC session.
- * - Sends and receives {@see Message} objects asynchronously.
+ * - Sends and receives {@see Message} objects.
  * - Supports registering handlers for notifications and requests, driven by an internal event loop.
  * - Manages request timeouts and cancellation.
  */
