@@ -17,11 +17,8 @@ use PhpStreamIpc\Transport\FrameCodec;
  *
  * This transport can read from multiple input streams concurrently.
  */
-final class FramedStreamMessageTransport implements MessageTransport
+final class StreamMessageTransport implements MessageTransport
 {
-    /** @var int The default maximum frame size in bytes (10MB). */
-    public const DEFAULT_MAX_FRAME = 10 * 1024 * 1024;
-
     /** @var resource */
     private $writeStream;
 
@@ -44,7 +41,7 @@ final class FramedStreamMessageTransport implements MessageTransport
         $writeStream,
         array $readStreams,
         MessageSerializer $serializer,
-        int $frameLimit = self::DEFAULT_MAX_FRAME
+        ?int $frameLimit = null
     ) {
         $this->writeStream = $writeStream;
         $this->serializer = $serializer;
@@ -87,14 +84,6 @@ final class FramedStreamMessageTransport implements MessageTransport
     }
 
     /**
-     * @throws StreamClosedException
-     */
-    private function readFrom($stream): array
-    {
-        return $this->readers[(int)$stream]->readFrameSync();
-    }
-
-    /**
      * Performs a single I/O tick for all provided sessions that use this transport type.
      * It uses `stream_select` to wait for readable data on any of the sessions' read streams.
      * When data is ready, it reads and dispatches messages.
@@ -109,8 +98,8 @@ final class FramedStreamMessageTransport implements MessageTransport
         $sessionStreams = [];
         foreach ($sessions as $session) {
             $transport = $session->getTransport();
-            if (!$transport instanceof FramedStreamMessageTransport) {
-                throw new LogicException('FramedStreamMessageTransport cannot be mixed with other MessageTransport implementations (' . get_debug_type($transport) . ')');
+            if (!$transport instanceof StreamMessageTransport) {
+                continue;
             }
             foreach ($transport->readers as $reader) {
                 $stream = $reader->getStream();
@@ -137,8 +126,15 @@ final class FramedStreamMessageTransport implements MessageTransport
         if ($ready > 0) {
             foreach ($reads as $stream) {
                 $session = $sessionStreams[(int)$stream];
+                if (!$session instanceof IpcSession) {
+                    throw new LogicException('Unexpected session type: ' . get_debug_type($session));
+                }
                 try {
-                    foreach ($session->getTransport()->readFrom($stream) as $msg) {
+                    $messageTransport = $session->getTransport();
+                    if (!$messageTransport instanceof StreamMessageTransport) {
+                        throw new LogicException('Unexpected transport type: ' . get_debug_type($messageTransport));
+                    }
+                    foreach ($messageTransport->readers[(int)$stream]->readFrameSync() as $msg) {
                         $session->dispatch($msg);
                     }
                 } catch (StreamClosedException) {

@@ -17,11 +17,8 @@ use function fread;
  */
 final class StreamFrameReader
 {
-    /**
-     * Expose the framing magic for BC with existing tests. Delegates to
-     * {@see FrameCodec::MAGIC}.
-     */
-    public const MAGIC = FrameCodec::MAGIC;
+    /** @var int The default maximum frame size in bytes (10MB). */
+    public const DEFAULT_MAX_FRAME = 10 * 1024 * 1024;
 
     private FrameCodec $codec;
 
@@ -35,8 +32,9 @@ final class StreamFrameReader
     public function __construct(
         private $stream,
         MessageSerializer $serializer,
-        int $maxFrame
+        ?int $maxFrame = null
     ) {
+        $maxFrame ??= self::DEFAULT_MAX_FRAME;
         $this->codec = new FrameCodec($serializer, $maxFrame);
     }
 

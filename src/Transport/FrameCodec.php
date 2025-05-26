@@ -20,15 +20,20 @@ final class FrameCodec
     /** Magic bytes indicating the start of a frame. */
     public const MAGIC = "\xF3\x4A\x9D\xE2";
 
+    /** @var int The default maximum frame size in bytes (10MB). */
+    public const DEFAULT_MAX_FRAME = 10 * 1024 * 1024;
+
     /** @var array<int,string> */
     private static array $magicPrefixes = [];
 
     private string $buffer = '';
+    private readonly int $maxFrame;
 
     public function __construct(
         private readonly MessageSerializer $serializer,
-        private readonly int $maxFrame
+        ?int $maxFrame = null
     ) {
+        $this->maxFrame = $maxFrame ?? self::DEFAULT_MAX_FRAME;
         self::initMagicPrefixes();
     }
 

@@ -7,7 +7,7 @@ use PhpStreamIpc\Envelope\Id\PidCounterRequestIdGenerator;
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
 use PhpStreamIpc\Serialization\MessageSerializer;
 use PhpStreamIpc\Serialization\NativeMessageSerializer;
-use PhpStreamIpc\Transport\FramedStreamMessageTransport;
+use PhpStreamIpc\Transport\StreamMessageTransport;
 use PhpStreamIpc\Transport\MessageTransport;
 
 /**
@@ -65,7 +65,7 @@ final class IpcPeer
             $reads[] = $read2;
         }
         return $this->createSession(
-            new FramedStreamMessageTransport(
+            new StreamMessageTransport(
                 $write,
                 $reads,
                 $this->defaultSerializer
