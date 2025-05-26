@@ -2,8 +2,10 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/riki137/php-stream-ipc.svg)](https://packagist.org/packages/riki137/php-stream-ipc)
 [![Tests](https://github.com/riki137/php-stream-ipc/actions/workflows/tests.yml/badge.svg)](https://github.com/riki137/php-stream-ipc/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/riki137/php-stream-ipc/branch/main/graph/badge.svg)](https://codecov.io/gh/riki137/php-stream-ipc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP 8.2+](https://img.shields.io/badge/php-^8.2-8892BF.svg)](https://www.php.net/)
+
 
 A lightweight PHP library for Inter-Process Communication (IPC) over streams, pipes, and stdio with built-in request-response correlation, message framing, and serialization.
 
