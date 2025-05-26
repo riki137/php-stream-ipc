@@ -19,7 +19,7 @@ jobs:
       - uses: ramsey/composer-install@v3
         with:
           composer-options: --no-progress --no-interaction --prefer-dist
-      - run: vendor/bin/phpunit
+      - run: vendor/bin/phpunit --debug
         env:
           XDEBUG_MODE: coverage
       - name: Upload coverage reports to Codecov
