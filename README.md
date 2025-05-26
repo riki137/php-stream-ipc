@@ -403,9 +403,11 @@ $peer = new IpcPeer(
 
 ## 🤝 Contributing
 
-I might be planning to add `amphp/byte-stream` support in the future. In the meantime, contributions are welcome! Please feel free to submit a Pull Request.
+`amphp/byte-stream` support has not been tested enough. In the meantime, contributions are welcome! Please feel free to submit a Pull Request.
 
 I want to keep the library pretty thin, but extendable. If you have a use case that you think would be useful, please open an issue and I'll see what I can do.
+
+I am open to breaking changes if they are needed to make the library more flexible.
 
 
 ## 📄 License
