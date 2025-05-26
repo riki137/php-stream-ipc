@@ -8,8 +8,7 @@ use LogicException;
 use PhpStreamIpc\IpcSession;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Serialization\MessageSerializer;
-use function pack;
-use function strlen;
+use PhpStreamIpc\Transport\FrameCodec;
 
 /**
  * FramedStreamMessageTransport implements the MessageTransport interface for stream-based IPC
@@ -27,6 +26,8 @@ final class FramedStreamMessageTransport implements MessageTransport
     private $writeStream;
 
     private MessageSerializer $serializer;
+
+    private FrameCodec $codec;
 
     /** @var StreamFrameReader[] indexed by (int)$stream */
     private array $readers = [];
@@ -47,6 +48,7 @@ final class FramedStreamMessageTransport implements MessageTransport
     ) {
         $this->writeStream = $writeStream;
         $this->serializer = $serializer;
+        $this->codec = new FrameCodec($serializer, $frameLimit);
         foreach ($readStreams as $stream) {
             $this->readers[(int)$stream] = new StreamFrameReader($stream, $serializer, $frameLimit);
         }
@@ -61,8 +63,7 @@ final class FramedStreamMessageTransport implements MessageTransport
      */
     public function send(Message $message): void
     {
-        $payload = $this->serializer->serialize($message);
-        $data    = StreamFrameReader::MAGIC . pack('N', strlen($payload)) . $payload;
+        $data = $this->codec->pack($message);
 
         // Clear any previous PHP error
         if (function_exists('error_clear_last')) {

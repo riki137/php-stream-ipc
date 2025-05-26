@@ -2,6 +2,7 @@
 namespace PhpStreamIpc\Tests\Unit;
 
 use PhpStreamIpc\Transport\StreamFrameReader;
+use PhpStreamIpc\Transport\FrameCodec;
 use PhpStreamIpc\Serialization\NativeMessageSerializer;
 use PhpStreamIpc\Tests\Fixtures\SimpleMessage;
 use PhpStreamIpc\Message\LogMessage;
@@ -19,8 +20,8 @@ final class StreamFrameReaderTest extends TestCase
 
     private function frameFor(SimpleMessage $msg, NativeMessageSerializer $ser): string
     {
-        $payload = $ser->serialize($msg);
-        return StreamFrameReader::MAGIC . pack('N', strlen($payload)) . $payload;
+        $codec = new FrameCodec($ser, 1024);
+        return $codec->pack($msg);
     }
 
     public function testReadsSingleMessage(): void
@@ -51,7 +52,7 @@ final class StreamFrameReaderTest extends TestCase
     {
         $ser = new NativeMessageSerializer();
         $payload = 'not serialized';
-        $frame = StreamFrameReader::MAGIC . pack('N', strlen($payload)) . $payload;
+        $frame = FrameCodec::MAGIC . pack('N', strlen($payload)) . $payload;
         $stream = $this->createStream($frame);
         $reader = new StreamFrameReader($stream, $ser, 1024);
         $msgs = $reader->readFrameSync();
@@ -63,23 +64,23 @@ final class StreamFrameReaderTest extends TestCase
     public function testOverlapLengthDetectsPrefixes(): void
     {
         $ser = new NativeMessageSerializer();
-        $reader = new StreamFrameReader($this->createStream(''), $ser, 1024);
+        $codec = new FrameCodec($ser, 1024);
 
-        $ref = new \ReflectionClass(StreamFrameReader::class);
+        $ref = new \ReflectionClass(FrameCodec::class);
         $bufProp = $ref->getProperty('buffer');
         $bufProp->setAccessible(true);
         $method = $ref->getMethod('getOverlapLength');
         $method->setAccessible(true);
 
-        $magic = StreamFrameReader::MAGIC;
+        $magic = FrameCodec::MAGIC;
         $magicLen = strlen($magic);
 
         for ($i = 1; $i < $magicLen; $i++) {
-            $bufProp->setValue($reader, substr($magic, 0, $i));
-            $this->assertSame($i, $method->invoke($reader));
+            $bufProp->setValue($codec, substr($magic, 0, $i));
+            $this->assertSame($i, $method->invoke($codec));
         }
 
-        $bufProp->setValue($reader, 'junk');
-        $this->assertSame(0, $method->invoke($reader));
+        $bufProp->setValue($codec, 'junk');
+        $this->assertSame(0, $method->invoke($codec));
     }
 }
