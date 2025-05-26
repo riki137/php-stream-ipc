@@ -12,6 +12,14 @@ use PHPUnit\Framework\TestCase;
 
 final class AmpByteStreamMessageTransportTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        if (extension_loaded('xdebug') && ini_get('xdebug.mode') === 'coverage') {
+            $this->markTestIncomplete('Skipping test due to Xdebug coverage mode');
+        }
+    }
+
     private function createPair(): array
     {
         return stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, 0);
@@ -19,6 +27,7 @@ final class AmpByteStreamMessageTransportTest extends TestCase
 
     public function testSendWritesFrame(): void
     {
+
         [$clientRead, $transportWriteSock] = $this->createPair();
         [$transportReadSock, $clientWrite] = $this->createPair();
 

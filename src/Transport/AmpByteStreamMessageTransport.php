@@ -16,7 +16,9 @@ use PhpStreamIpc\Serialization\MessageSerializer;
 use Revolt\EventLoop;
 use function Amp\Future\awaitFirst;
 
-
+/**
+ * @codeCoverageIgnore Async has trouble with coverage
+ */
 class AmpByteStreamMessageTransport implements MessageTransport
 {
     /** @var ReadableResourceStream[] */
