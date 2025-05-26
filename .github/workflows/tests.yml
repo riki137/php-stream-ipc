@@ -1,0 +1,23 @@
+name: Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+      - uses: ramsey/composer-install@v3
+        with:
+          composer-options: --no-progress --no-interaction --prefer-dist
+      - run: vendor/bin/phpunit
+        env:
+          XDEBUG_MODE: coverage
