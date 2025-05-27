@@ -16,7 +16,10 @@ class TestStreamPeer extends IpcPeer
     public function tick(?float $timeout = null): void
     {
         foreach ($this->sessions as $s) {
-            $s->getTransport()->tick([$s], $timeout);
+            $t = $s->getTransport();
+            foreach ($t->getReadStreams() as $stream) {
+                $t->readFromStream($stream);
+            }
         }
     }
 }

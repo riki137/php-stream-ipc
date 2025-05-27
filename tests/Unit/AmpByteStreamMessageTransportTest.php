@@ -73,7 +73,7 @@ final class AmpByteStreamMessageTransportTest extends TestCase
             fwrite($clientWrite, $codec->pack(new SimpleMessage('ping')));
         });
 
-        $transport->tick([$session]);
+        $peer->tick();
 
         $this->assertSame(['ping'], $received);
     }

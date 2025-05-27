@@ -17,13 +17,17 @@ use Symfony\Component\Process\Process;
 final class SymfonyProcessMessageTransport implements MessageTransport
 {
     private const DEFAULT_SLEEP_TICK = 500;
+
     private readonly InputStream $input;
+
     private readonly FrameCodec $codec;
+
     private array $codecs = [];
+
     /** @var Message[][] */
     private array $pending = [];
+
     private Closure $callback;
-    private int $sleepTick;
 
     public function __construct(
         private readonly Process $process,
@@ -49,35 +53,21 @@ final class SymfonyProcessMessageTransport implements MessageTransport
         $this->input->write($this->codec->pack($message));
     }
 
-    public function tick(array $sessions, ?float $timeout = null): void
+    public function isRunning(): bool
     {
-        $end = isset($timeout) ? microtime(true) + $timeout : null;
-        while (true) {
-            foreach ($sessions as $key => $session) {
-                $transport = $session->getTransport();
-                if (!$transport instanceof self) {
-                    unset($sessions[$key]);
-                    continue;
-                }
-                if (!$transport->process->isRunning()) {
-                    unset($sessions[$key]);
-                    continue;
-                }
-                if ($transport->pending === []) {
-                    continue;
-                }
-                foreach ($transport->pending as $messages) {
-                    foreach ($messages as $message) {
-                        $session->dispatch($message);
-                    }
-                }
-                $transport->pending = [];
-                return;
-            }
-            if ($sessions === [] || microtime(true) >= $end) {
-                return;
-            }
-            usleep($this->sleepTick);
-        }
+        return $this->process->isRunning();
+    }
+
+    /**
+     * Retrieve and clear any messages captured from the process output.
+     *
+     * @return Message[][] keyed by output type
+     */
+    public function takePending(): array
+    {
+        $pending = $this->pending;
+        $this->pending = [];
+
+        return $pending;
     }
 }

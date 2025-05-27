@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Transport;
 
 use LogicException;
-use PhpStreamIpc\IpcSession;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Serialization\MessageSerializer;
 use PhpStreamIpc\Transport\FrameCodec;
@@ -21,7 +20,6 @@ final class StreamMessageTransport implements MessageTransport
 {
     /** @var resource */
     private $writeStream;
-
 
     private FrameCodec $codec;
 
@@ -82,63 +80,35 @@ final class StreamMessageTransport implements MessageTransport
     }
 
     /**
-     * Performs a single I/O tick for all provided sessions that use this transport type.
-     * It uses `stream_select` to wait for readable data on any of the sessions' read streams.
-     * When data is ready, it reads and dispatches messages.
-     *
-     * @param IpcSession[] $sessions An array of IPC sessions to process.
-     * @param float|null $timeout Optional timeout in seconds for `stream_select`. Null means block indefinitely.
-     * @throws LogicException If a session uses a different transport type.
+     * @return resource[] Streams that can be used for reading messages.
      */
-    public function tick(array $sessions, ?float $timeout = null): void
+    public function getReadStreams(): array
     {
         $streams = [];
-        $sessionStreams = [];
-        foreach ($sessions as $session) {
-            $transport = $session->getTransport();
-            if (!$transport instanceof StreamMessageTransport) {
-                continue;
-            }
-            foreach ($transport->readers as $reader) {
-                $stream = $reader->getStream();
-                $streams[(int)$stream] = $stream;
-                $sessionStreams[(int)$stream] = $session;
-            }
-        }
-        if ($streams === []) {
-            return;
+        foreach ($this->readers as $reader) {
+            $streams[] = $reader->getStream();
         }
 
-        $reads = array_values($streams);
-        $writes = $except = [];
+        return $streams;
+    }
 
-        if ($timeout === null) {
-            // infinite block
-            $ready = stream_select($reads, $writes, $except, null, null);
-        } else {
-            $sec = (int)floor($timeout);
-            $usec = (int)(($timeout - $sec) * 1e6);
-            $ready = stream_select($reads, $writes, $except, $sec, $usec);
+    /**
+     * Read and decode any available messages from the given stream.
+     *
+     * @param resource $stream
+     * @return Message[]
+     */
+    public function readFromStream($stream): array
+    {
+        $reader = $this->readers[(int) $stream] ?? null;
+        if ($reader === null) {
+            throw new LogicException('Unknown stream provided to readFromStream');
         }
 
-        if ($ready > 0) {
-            foreach ($reads as $stream) {
-                $session = $sessionStreams[(int)$stream];
-                if (!$session instanceof IpcSession) {
-                    throw new LogicException('Unexpected session type: ' . get_debug_type($session));
-                }
-                try {
-                    $messageTransport = $session->getTransport();
-                    if (!$messageTransport instanceof StreamMessageTransport) {
-                        throw new LogicException('Unexpected transport type: ' . get_debug_type($messageTransport));
-                    }
-                    foreach ($messageTransport->readers[(int)$stream]->readFrameSync() as $msg) {
-                        $session->dispatch($msg);
-                    }
-                } catch (StreamClosedException) {
-                    // ignore
-                }
-            }
+        try {
+            return $reader->readFrameSync();
+        } catch (StreamClosedException) {
+            return [];
         }
     }
 }

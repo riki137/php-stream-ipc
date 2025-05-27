@@ -27,6 +27,7 @@ final class FrameCodec
     private static array $magicPrefixes = [];
 
     private string $buffer = '';
+
     private readonly int $maxFrame;
 
     public function __construct(
@@ -121,7 +122,7 @@ final class FrameCodec
             return;
         }
         $magic = self::MAGIC;
-        $len   = strlen($magic);
+        $len = strlen($magic);
         for ($i = $len - 1; $i >= 1; $i--) {
             self::$magicPrefixes[$i] = substr($magic, 0, $i);
         }

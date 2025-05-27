@@ -4,9 +4,9 @@ declare(strict_types=1);
 namespace PhpStreamIpc;
 
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
-use PhpStreamIpc\Envelope\ResponsePromise;
 use PhpStreamIpc\Envelope\RequestEnvelope;
 use PhpStreamIpc\Envelope\ResponseEnvelope;
+use PhpStreamIpc\Envelope\ResponsePromise;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Transport\MessageTransport;

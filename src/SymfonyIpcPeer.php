@@ -25,12 +25,34 @@ final class SymfonyIpcPeer extends IpcPeer
 
     public function tick(?float $timeout = null): void
     {
-        if ($this->sessions === []) {
-            return;
-        }
-        $transport = $this->sessions[0]->getTransport();
-        if ($transport instanceof SymfonyProcessMessageTransport) {
-            $transport->tick($this->sessions, $timeout);
+        $start = microtime(true);
+        $timeout ??= 0.0;
+        $sleepTick = 500;
+
+        while (true) {
+            $handled = false;
+            foreach ($this->sessions as $session) {
+                $transport = $session->getTransport();
+                if (!$transport instanceof SymfonyProcessMessageTransport) {
+                    continue;
+                }
+                if (!$transport->isRunning()) {
+                    continue;
+                }
+                $sleepTick = $transport->getSleepTick();
+                foreach ($transport->takePending() as $messages) {
+                    foreach ($messages as $message) {
+                        $session->dispatch($message);
+                    }
+                }
+                $handled = true;
+            }
+
+            if ($handled || $timeout === 0.0 || microtime(true) - $start >= $timeout) {
+                return;
+            }
+
+            usleep($sleepTick);
         }
     }
 }

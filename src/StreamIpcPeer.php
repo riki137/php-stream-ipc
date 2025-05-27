@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc;
 
 use PhpStreamIpc\Transport\StreamMessageTransport;
+use RuntimeException;
 
 final class StreamIpcPeer extends IpcPeer
 {
@@ -32,14 +33,71 @@ final class StreamIpcPeer extends IpcPeer
         return $this->createSession($transport);
     }
 
+    public function createCommandSession(string $command, array $args, ?string $cwd = null): IpcSession
+    {
+        $descriptors = [
+            0 => ['pipe', 'r'], // child STDIN
+            1 => ['pipe', 'w'], // child STDOUT
+            2 => ['pipe', 'w'], // child STDERR
+        ];
+
+        $pipes = [];
+        $process = @proc_open($command, $descriptors, $pipes, $cwd, $args);
+
+        if (!is_resource($process)) {
+            $error = error_get_last();
+            $message = 'Failed to start command process';
+            if ($error && isset($error['message'])) {
+                $message .= ': ' . $error['message'];
+            }
+            throw new RuntimeException($message);
+        }
+
+        if (!isset($pipes[0], $pipes[1], $pipes[2])) {
+            proc_close($process);
+            throw new RuntimeException('Failed to open all required process pipes (STDIN, STDOUT, STDERR)');
+        }
+
+        return $this->createStreamSession($pipes[0], $pipes[1], $pipes[2]);
+    }
+
     public function tick(?float $timeout = null): void
     {
-        if ($this->sessions === []) {
+        $streams = [];
+        $sessionStreams = [];
+
+        foreach ($this->sessions as $session) {
+            $transport = $session->getTransport();
+            if (!$transport instanceof StreamMessageTransport) {
+                continue;
+            }
+            foreach ($transport->getReadStreams() as $stream) {
+                $streams[(int)$stream] = $stream;
+                $sessionStreams[(int)$stream] = [$session, $transport];
+            }
+        }
+
+        if ($streams === []) {
             return;
         }
-        $transport = $this->sessions[0]->getTransport();
-        if ($transport instanceof StreamMessageTransport) {
-            $transport->tick($this->sessions, $timeout);
+
+        $reads = array_values($streams);
+        $writes = $except = [];
+
+        $sec = $usec = null;
+        if ($timeout !== null) {
+            $sec = (int)floor($timeout);
+            $usec = (int)(($timeout - $sec) * 1e6);
+        }
+        $ready = stream_select($reads, $writes, $except, $sec, $usec);
+
+        if ($ready > 0) {
+            foreach ($reads as $stream) {
+                [$session, $transport] = $sessionStreams[(int)$stream];
+                foreach ($transport->readFromStream($stream) as $message) {
+                    $session->dispatch($message);
+                }
+            }
         }
     }
 }

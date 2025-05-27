@@ -18,9 +18,7 @@ class TestPeer extends IpcPeer
 
     public function tick(?float $timeout = null): void
     {
-        foreach ($this->sessions as $session) {
-            $session->getTransport()->tick([$session], $timeout);
-        }
+        // no-op for tests
     }
 }
 
@@ -136,6 +134,6 @@ final class IpcSessionTest extends TestCase
 
         $peer->tick();
 
-        $this->assertSame([], $transport->ticks);
+        $this->assertSame([], $transport->readCalls);
     }
 }

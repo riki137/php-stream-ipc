@@ -9,8 +9,7 @@ final class FakeStreamTransport implements MessageTransport
 {
     /** @var float[] */
     public array $tickArgs = [];
-    /** @var IpcSession[][] */
-    public array $sessions = [];
+    public array $streams = [];
 
 
     public function __construct()
@@ -22,9 +21,14 @@ final class FakeStreamTransport implements MessageTransport
         // ignore
     }
 
-    public function tick(array $sessions, ?float $timeout = null): void
+    public function getReadStreams(): array
     {
-        $this->tickArgs[] = $timeout;
-        $this->sessions[] = $sessions;
+        $this->tickArgs[] = 0.0;
+        return $this->streams;
+    }
+
+    public function readFromStream($stream): array
+    {
+        return [];
     }
 }

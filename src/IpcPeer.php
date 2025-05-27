@@ -16,7 +16,9 @@ abstract class IpcPeer
 {
     /** @var IpcSession[] */
     protected array $sessions = [];
+
     protected MessageSerializer $defaultSerializer;
+
     protected RequestIdGenerator $idGen;
 
     public function __construct(?MessageSerializer $defaultSerializer = null, ?RequestIdGenerator $idGen = null)
@@ -25,9 +27,6 @@ abstract class IpcPeer
         $this->idGen = $idGen ?? new PidCounterRequestIdGenerator();
     }
 
-    /**
-     * @param MessageTransport $transport
-     */
     protected function createSession(MessageTransport $transport): IpcSession
     {
         $session = new IpcSession($this, $transport, $this->idGen);
