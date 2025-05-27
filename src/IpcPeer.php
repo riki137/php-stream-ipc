@@ -9,6 +9,8 @@ use PhpStreamIpc\Serialization\MessageSerializer;
 use PhpStreamIpc\Serialization\NativeMessageSerializer;
 use PhpStreamIpc\Transport\StreamMessageTransport;
 use PhpStreamIpc\Transport\MessageTransport;
+use PhpStreamIpc\Transport\SymfonyProcessMessageTransport;
+use Symfony\Component\Process\Process;
 
 /**
  * Manages IPC sessions for communication over stdio, pipes, or child processes.
@@ -81,6 +83,22 @@ final class IpcPeer
     public function createStdioSession(): IpcSession
     {
         return $this->createStreamSession(STDOUT, STDIN);
+    }
+
+    /**
+     * Creates a new IPC session for a Symfony Process.
+     * The process is started automatically and its pipes are used for
+     * communication.
+     * @param Process $process not typehinted directly to avoid compile-time dependency on Symfony Process
+     */
+    public function createSymfonyProcessSession($process): IpcSession
+    {
+        return $this->createSession(
+            new SymfonyProcessMessageTransport(
+                $process,
+                $this->defaultSerializer
+            )
+        );
     }
 
     /**

@@ -58,6 +58,25 @@ echo "Child responded: {$response->message}\n";
 proc_close($process);
 ```
 
+Using Symfony's Process component instead of `proc_open()`:
+
+```php
+use Symfony\Component\Process\Process;
+
+$process = new Process([PHP_BINARY, 'child.php']);
+$peer = new IpcPeer();
+$session = $peer->createSymfonyProcessSession($process);
+
+$response = $session->request(new LogMessage('Hello from parent!'), 5.0)->await();
+echo "Child responded: {$response->message}\n";
+```
+
+This approach requires the `symfony/process` package:
+
+```bash
+composer require symfony/process
+```
+
 ```php
 // child.php
 use PhpStreamIpc\IpcPeer;
