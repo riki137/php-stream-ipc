@@ -33,7 +33,6 @@ final class SymfonyProcessMessageTransport implements MessageTransport
         private readonly Process $process,
         MessageSerializer $serializer,
         ?int $frameLimit = null,
-        ?int $sleepTick = null
     ) {
         $this->codec = new FrameCodec($serializer, $frameLimit);
         $this->input = new InputStream();
@@ -45,7 +44,6 @@ final class SymfonyProcessMessageTransport implements MessageTransport
         };
         $process->setInput($this->input);
         $process->start($this->callback);
-        $this->sleepTick = $sleepTick ?? self::DEFAULT_SLEEP_TICK;
     }
 
     public function send(Message $message): void

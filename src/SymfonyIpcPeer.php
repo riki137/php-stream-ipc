@@ -3,11 +3,20 @@ declare(strict_types=1);
 
 namespace PhpStreamIpc;
 
+use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
+use PhpStreamIpc\Serialization\MessageSerializer;
 use PhpStreamIpc\Transport\SymfonyProcessMessageTransport;
 use Symfony\Component\Process\Process;
 
 final class SymfonyIpcPeer extends IpcPeer
 {
+    private const DEFAULT_SLEEP_TICK = 500;
+
+    public function __construct(?MessageSerializer $defaultSerializer = null, ?RequestIdGenerator $idGen = null, private readonly ?int $sleepTick = null)
+    {
+        parent::__construct($defaultSerializer, $idGen);
+    }
+
     public function createSymfonyProcessSession(Process $process): IpcSession
     {
         return $this->createSession(
@@ -27,7 +36,7 @@ final class SymfonyIpcPeer extends IpcPeer
     {
         $start = microtime(true);
         $timeout ??= 0.0;
-        $sleepTick = 500;
+        $sleepTick = $this->sleepTick ?? self::DEFAULT_SLEEP_TICK;
 
         while (true) {
             $handled = false;
@@ -39,7 +48,6 @@ final class SymfonyIpcPeer extends IpcPeer
                 if (!$transport->isRunning()) {
                     continue;
                 }
-                $sleepTick = $transport->getSleepTick();
                 foreach ($transport->takePending() as $messages) {
                     foreach ($messages as $message) {
                         $session->dispatch($message);
