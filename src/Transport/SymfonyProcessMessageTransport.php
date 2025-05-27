@@ -16,20 +16,25 @@ use Symfony\Component\Process\Process;
  */
 final class SymfonyProcessMessageTransport implements MessageTransport
 {
-    private const DEFAULT_SLEEP_TICK = 500;
     private readonly InputStream $input;
+
     private readonly FrameCodec $codec;
+
+    /** @var array<string, FrameCodec> */
     private array $codecs = [];
+
     /** @var Message[][] */
     private array $pending = [];
-    private Closure $callback;
-    private int $sleepTick;
 
+    private Closure $callback;
+
+    /**
+     * @param ?int $frameLimit Maximum allowed size of a single message frame.
+     */
     public function __construct(
         private readonly Process $process,
         MessageSerializer $serializer,
         ?int $frameLimit = null,
-        ?int $sleepTick = null
     ) {
         $this->codec = new FrameCodec($serializer, $frameLimit);
         $this->input = new InputStream();
@@ -41,43 +46,34 @@ final class SymfonyProcessMessageTransport implements MessageTransport
         };
         $process->setInput($this->input);
         $process->start($this->callback);
-        $this->sleepTick = $sleepTick ?? self::DEFAULT_SLEEP_TICK;
     }
 
+    /**
+     * Write a message to the child process.
+     */
     public function send(Message $message): void
     {
         $this->input->write($this->codec->pack($message));
     }
 
-    public function tick(array $sessions, ?float $timeout = null): void
+    /**
+     * Check whether the process is still running.
+     */
+    public function isRunning(): bool
     {
-        $end = isset($timeout) ? microtime(true) + $timeout : null;
-        while (true) {
-            foreach ($sessions as $key => $session) {
-                $transport = $session->getTransport();
-                if (!$transport instanceof self) {
-                    unset($sessions[$key]);
-                    continue;
-                }
-                if (!$transport->process->isRunning()) {
-                    unset($sessions[$key]);
-                    continue;
-                }
-                if ($transport->pending === []) {
-                    continue;
-                }
-                foreach ($transport->pending as $messages) {
-                    foreach ($messages as $message) {
-                        $session->dispatch($message);
-                    }
-                }
-                $transport->pending = [];
-                return;
-            }
-            if ($sessions === [] || microtime(true) >= $end) {
-                return;
-            }
-            usleep($this->sleepTick);
-        }
+        return $this->process->isRunning();
+    }
+
+    /**
+     * Retrieve and clear any messages captured from the process output.
+     *
+     * @return Message[][] keyed by output type
+     */
+    public function takePending(): array
+    {
+        $pending = $this->pending;
+        $this->pending = [];
+
+        return $pending;
     }
 }

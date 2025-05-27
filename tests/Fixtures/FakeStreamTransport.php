@@ -5,25 +5,30 @@ use PhpStreamIpc\Transport\MessageTransport;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\IpcSession;
 
-final class FakeTransport implements MessageTransport
+final class FakeStreamTransport implements MessageTransport
 {
-    /** @var Message[] */
-    public array $sent = [];
-    public array $readCalls = [];
+    /** @var float[] */
+    public array $tickArgs = [];
+    public array $streams = [];
+
+
+    public function __construct()
+    {
+    }
 
     public function send(Message $message): void
     {
-        $this->sent[] = $message;
+        // ignore
     }
 
     public function getReadStreams(): array
     {
-        return [];
+        $this->tickArgs[] = 0.0;
+        return $this->streams;
     }
 
     public function readFromStream($stream): array
     {
-        $this->readCalls[] = $stream;
         return [];
     }
 }

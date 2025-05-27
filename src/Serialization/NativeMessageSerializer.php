@@ -15,10 +15,9 @@ use Throwable;
 final readonly class NativeMessageSerializer implements MessageSerializer
 {
     /**
-     * Serializes a {@see Message} object into a string using PHP's native `serialize()` function.
+     * Serializes a {@see Message} object using PHP's native `serialize()` function.
      *
-     * @param Message $data The {@see Message} object to serialize.
-     * @return string The serialized string representation of the message.
+     * @param $data Message The message to serialize.
      */
     public function serialize(Message $data): string
     {
@@ -26,12 +25,10 @@ final readonly class NativeMessageSerializer implements MessageSerializer
     }
 
     /**
-     * Deserializes a string payload back into a {@see Message} object using PHP's native `unserialize()` function.
-     * If unserialization fails or the resulting object does not implement {@see Message},
-     * a {@see LogMessage} with level 'error' is returned containing the original data.
+     * Deserializes a string payload back into a {@see Message} using PHP's `unserialize()`.
+     * If unserialization fails or the result does not implement {@see Message}, an error log is returned.
      *
-     * @param string $data The string payload to deserialize.
-     * @return Message The deserialized {@see Message} object, or a {@see LogMessage} on failure.
+     * @param $data string The string payload to deserialize.
      */
     public function deserialize(string $data): Message
     {

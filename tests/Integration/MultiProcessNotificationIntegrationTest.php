@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
@@ -31,10 +31,10 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 
-$peer    = new IpcPeer();
+$peer    = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 $session->notify(new LogMessage('p1_1', 'info'));
@@ -54,10 +54,10 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 
-$peer    = new IpcPeer();
+$peer    = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 usleep(50_000); // 50 ms
@@ -96,7 +96,7 @@ PHP;
         [$stdin2, $stdout2, $stderr2] = $pipes2;
 
         // Parent peer with two sessions
-        $peer = new IpcPeer();
+        $peer = new StreamIpcPeer();
         $session1 = $peer->createStreamSession($stdin1, $stdout1, $stderr1);
         $session2 = $peer->createStreamSession($stdin2, $stdout2, $stderr2);
 

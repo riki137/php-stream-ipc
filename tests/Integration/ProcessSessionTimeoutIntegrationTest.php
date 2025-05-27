@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
@@ -30,10 +30,10 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\Message;
 
-$peer    = new IpcPeer();
+$peer    = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 // register a handler that never returns a response
@@ -70,7 +70,7 @@ PHP;
 
         [$stdin, $stdout, $stderr] = $pipes;
 
-        $peer    = new IpcPeer();
+        $peer    = new StreamIpcPeer();
         $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
         $this->expectException(\RuntimeException::class);

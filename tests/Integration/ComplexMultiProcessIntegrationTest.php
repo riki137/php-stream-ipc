@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
@@ -33,11 +33,11 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 
 // child #%d: two notifications, then one request
-$peer    = new IpcPeer();
+$peer    = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 // first notification
@@ -80,7 +80,7 @@ PHP;
 
     public function testMasterHandlesFiveChildren(): void
     {
-        $peer     = new IpcPeer();
+        $peer     = new StreamIpcPeer();
         $procs    = [];
         $sessions = [];
 

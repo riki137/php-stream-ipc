@@ -27,6 +27,7 @@ final class FrameCodec
     private static array $magicPrefixes = [];
 
     private string $buffer = '';
+
     private readonly int $maxFrame;
 
     public function __construct(
@@ -87,7 +88,11 @@ final class FrameCodec
                 break;
             }
 
-            $length = unpack('N', substr($this->buffer, 4, 4))[1];
+            $unpacked = unpack('N', substr($this->buffer, 4, 4));
+            if ($unpacked === false) {
+                break;
+            }
+            $length = $unpacked[1];
             if ($length > $this->maxFrame) {
                 $this->buffer = substr($this->buffer, 1);
                 continue;
@@ -110,6 +115,9 @@ final class FrameCodec
         return $messages;
     }
 
+    /**
+     * Returns true when partial data is buffered but no complete frame is available yet.
+     */
     public function hasBufferedData(): bool
     {
         return $this->buffer !== '';
@@ -121,7 +129,7 @@ final class FrameCodec
             return;
         }
         $magic = self::MAGIC;
-        $len   = strlen($magic);
+        $len = strlen($magic);
         for ($i = $len - 1; $i >= 1; $i--) {
             self::$magicPrefixes[$i] = substr($magic, 0, $i);
         }

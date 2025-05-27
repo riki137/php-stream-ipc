@@ -25,9 +25,12 @@ final class StreamFrameReader
     /**
      * Constructs a new StreamFrameReader.
      *
-     * @param resource $stream The stream to read from.
-     * @param MessageSerializer $serializer The serializer to use for deserializing message payloads.
-     * @param int $maxFrame The maximum allowed size for a single message frame.
+     * @param $stream resource Stream to read from.
+     * @param $serializer MessageSerializer used for incoming frames.
+     * @param $maxFrame ?int Maximum allowed size for a single message frame.
+     */
+    /**
+     * @param resource $stream
      */
     public function __construct(
         private $stream,
@@ -41,7 +44,7 @@ final class StreamFrameReader
     /**
      * Gets the underlying stream resource.
      *
-     * @return resource The stream resource being read from.
+     * @return resource
      */
     public function getStream()
     {
@@ -56,7 +59,7 @@ final class StreamFrameReader
      * If the stream is closed before any complete frame is read, a StreamClosedException is thrown.
      * Invalid framing or oversized frames produce LogMessage entries.
      *
-     * @return Message[]  Array of deserialized messages (or LogMessage on errors)
+     * @return Message[] Array of deserialized messages (or LogMessage on errors)
      * @throws StreamClosedException If the stream is closed before any complete frame is available
      */
     public function readFrameSync(): array

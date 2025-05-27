@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\SymfonyIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 use Symfony\Component\Process\Process;
@@ -30,10 +30,10 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\Message;
 
-$peer    = new IpcPeer();
+$peer    = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 $session->onRequest(fn(Message $msg) => $msg);
 $peer->tick();
@@ -50,10 +50,10 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\Message;
 
-$peer    = new IpcPeer();
+$peer    = new StreamIpcPeer();
 $session = $peer->createStreamSession(STDERR, STDIN);
 $session->onRequest(fn(Message $msg) => $msg);
 $peer->tick();
@@ -76,14 +76,14 @@ PHP;
         $process1 = new Process([PHP_BINARY, $this->stdoutScript]);
         $process2 = new Process([PHP_BINARY, $this->stderrScript]);
 
-        $peer     = new IpcPeer();
+        $peer     = new SymfonyIpcPeer();
         $session1 = $peer->createSymfonyProcessSession($process1);
         $session2 = $peer->createSymfonyProcessSession($process2);
 
-        $pending1 = $session1->request(new LogMessage('from-stdout', 'info'), 1.0);
-        $pending2 = $session2->request(new LogMessage('from-stderr', 'info'), 1.0);
+        $pending1 = $session1->request(new LogMessage('from-stdout', 'info'), 2.0);
+        $pending2 = $session2->request(new LogMessage('from-stderr', 'info'), 2.0);
 
-        $peer->tickFor(1.0);
+        $peer->tickFor(2.0);
 
         $resp1 = $pending1->await();
         $resp2 = $pending2->await();

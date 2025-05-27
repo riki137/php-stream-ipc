@@ -22,13 +22,11 @@ final class ResponsePromise
     private float $start;
 
     /**
+     * @param $peer    IpcPeer Peer instance managing the communication.
+     * @param $session  IpcSession associated with this promise.
+     * @param $id       string Identifier of the request this promise is for.
+     * @param $timeout  ?float Timeout in seconds for awaiting the response, null for none.
      * @internal
-     * Constructs a new MessagePromise.
-     *
-     * @param IpcPeer $peer The IpcPeer instance managing the communication.
-     * @param IpcSession $session The IpcSession associated with this promise.
-     * @param string $id The unique identifier of the request this promise is for.
-     * @param ?float $timeout The timeout in seconds for awaiting the response. Null for no timeout.
      */
     public function __construct(
         private readonly IpcPeer $peer,
@@ -41,9 +39,8 @@ final class ResponsePromise
 
     /**
      * Awaits the response message.
-     * This method will block until the response is received or a timeout occurs.
+     * This method blocks until the response is received or a timeout occurs.
      *
-     * @return Message The received response message.
      * @throws TimeoutException If the request times out before a response is received.
      */
     public function await(): Message

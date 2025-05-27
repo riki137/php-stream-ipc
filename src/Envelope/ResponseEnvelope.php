@@ -16,8 +16,8 @@ final readonly class ResponseEnvelope implements Message
     /**
      * Constructs a new ResponseEnvelope.
      *
-     * @param string $id The unique identifier of the original {@see RequestEnvelope} this response corresponds to.
-     * @param Message $response The actual {@see Message} payload of the response.
+     * @param $id       string Identifier of the original request this response corresponds to.
+     * @param $response Message payload of the response.
      */
     public function __construct(public string $id, public Message $response)
     {
