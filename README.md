@@ -58,18 +58,28 @@ echo "Child responded: {$response->message}\n";
 proc_close($process);
 ```
 
-Using Symfony's Process component instead of `proc_open()`:
+### Using Symfony's Process Component
+
+The library works seamlessly with Symfony's `Process` component. The
+`createSymfonyProcessSession()` helper automatically starts the process
+and wires it for message passing using a Symfony `InputStream`. Configure
+your `Process` instance (working directory, environment variables, timeouts,
+etc.) before handing it to the session:
 
 ```php
 use Symfony\Component\Process\Process;
 
 $process = new Process([PHP_BINARY, 'child.php']);
+$process->setTimeout(0); // disable Process timeouts if desired
 $peer = new IpcPeer();
 $session = $peer->createSymfonyProcessSession($process);
 
 $response = $session->request(new LogMessage('Hello from parent!'), 5.0)->await();
 echo "Child responded: {$response->message}\n";
 ```
+
+You may run multiple processes in parallel and drive them all by calling
+`$peer->tick()` (or `tickFor()`) inside your main loop.
 
 This approach requires the `symfony/process` package:
 

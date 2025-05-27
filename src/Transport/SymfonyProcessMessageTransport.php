@@ -51,8 +51,8 @@ final class SymfonyProcessMessageTransport implements MessageTransport
 
     public function tick(array $sessions, ?float $timeout = null): void
     {
-        $end = $timeout === null ? null : microtime(true) + $timeout;
-        while ($sessions !== [] && microtime(true) < $end) {
+        $end = isset($timeout) ? microtime(true) + $timeout : null;
+        while (true) {
             foreach ($sessions as $key => $session) {
                 $transport = $session->getTransport();
                 if (!$transport instanceof self) {
@@ -72,10 +72,12 @@ final class SymfonyProcessMessageTransport implements MessageTransport
                     }
                 }
                 $transport->pending = [];
-                break 2;
+                return;
+            }
+            if ($sessions === [] || microtime(true) >= $end) {
+                return;
             }
             usleep($this->sleepTick);
         }
-
     }
 }
