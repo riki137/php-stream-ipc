@@ -88,7 +88,11 @@ final class FrameCodec
                 break;
             }
 
-            $length = unpack('N', substr($this->buffer, 4, 4))[1];
+            $unpacked = unpack('N', substr($this->buffer, 4, 4));
+            if ($unpacked === false) {
+                break;
+            }
+            $length = $unpacked[1];
             if ($length > $this->maxFrame) {
                 $this->buffer = substr($this->buffer, 1);
                 continue;

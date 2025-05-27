@@ -13,6 +13,10 @@ final class StreamIpcPeer extends IpcPeer
 {
     /**
      * Create a session using the given write stream and one or two read streams.
+     *
+     * @param resource      $write Stream used for writing
+     * @param resource      $read  Primary read stream
+     * @param resource|null $read2 Optional secondary read stream
      */
     public function createStreamSession($write, $read, $read2 = null): IpcSession
     {
@@ -47,6 +51,10 @@ final class StreamIpcPeer extends IpcPeer
 
     /**
      * Spawn a command and attach to its stdio pipes as a session.
+     *
+     * @param string              $command Command to execute
+     * @param array<string,string> $args    Environment variables passed to the process
+     * @param string|null          $cwd     Working directory
      */
     public function createCommandSession(string $command, array $args, ?string $cwd = null): IpcSession
     {
@@ -62,7 +70,7 @@ final class StreamIpcPeer extends IpcPeer
         if (!is_resource($process)) {
             $error = error_get_last();
             $message = 'Failed to start command process';
-            if ($error && isset($error['message'])) {
+            if ($error !== null) {
                 $message .= ': ' . $error['message'];
             }
             throw new RuntimeException($message);

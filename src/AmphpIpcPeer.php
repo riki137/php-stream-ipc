@@ -6,26 +6,23 @@ namespace PhpStreamIpc;
 use Amp\ByteStream\ReadableResourceStream;
 use Amp\ByteStream\WritableResourceStream;
 use Amp\DeferredFuture;
-use InvalidArgumentException;
 use PhpStreamIpc\Transport\AmpByteStreamMessageTransport;
 use Revolt\EventLoop;
 use function Amp\Future\awaitFirst;
+use function is_resource;
 
 final class AmphpIpcPeer extends IpcPeer
 {
     /**
      * Create a session from Amp byte-streams.
      *
-     * @param $write  WritableResourceStream for output.
-     * @param $reads  ReadableResourceStream[] Array of readable streams used for input.
+     * @param WritableResourceStream   $write Writable stream used for output
+     * @param ReadableResourceStream[] $reads Array of readable streams used for input
      */
     public function createByteStreamSession(WritableResourceStream $write, array $reads): IpcSession
     {
         $readStreams = [];
         foreach ($reads as $stream) {
-            if (!$stream instanceof ReadableResourceStream) {
-                throw new InvalidArgumentException('Read streams must be instance of ' . ReadableResourceStream::class);
-            }
             $readStreams[] = $stream;
         }
         return $this->createSession(
@@ -59,9 +56,13 @@ final class AmphpIpcPeer extends IpcPeer
                 continue;
             }
             foreach ($transport->getReadStreams() as $readStream) {
+                $resource = $readStream->getResource();
+                if (!is_resource($resource)) {
+                    continue;
+                }
                 $defs[] = $def = new DeferredFuture();
                 $callbacks[] = EventLoop::onReadable(
-                    $readStream->getResource(),
+                    $resource,
                     static function (string $id) use ($def, $readStream, $session): void {
                         if (!$def->isComplete()) {
                             $def->complete([$readStream, $session]);

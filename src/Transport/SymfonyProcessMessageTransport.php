@@ -16,12 +16,11 @@ use Symfony\Component\Process\Process;
  */
 final class SymfonyProcessMessageTransport implements MessageTransport
 {
-    private const DEFAULT_SLEEP_TICK = 500;
-
     private readonly InputStream $input;
 
     private readonly FrameCodec $codec;
 
+    /** @var array<string, FrameCodec> */
     private array $codecs = [];
 
     /** @var Message[][] */

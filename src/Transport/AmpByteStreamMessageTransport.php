@@ -6,9 +6,9 @@ namespace PhpStreamIpc\Transport;
 
 use Amp\ByteStream\ReadableResourceStream;
 use Amp\ByteStream\WritableResourceStream;
-use InvalidArgumentException;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Serialization\MessageSerializer;
+use function is_resource;
 
 /**
  * @codeCoverageIgnore Async has trouble with coverage
@@ -21,10 +21,10 @@ class AmpByteStreamMessageTransport implements MessageTransport
     private FrameCodec $codec;
 
     /**
-     * @param $writeStream WritableResourceStream to write to.
-     * @param $readStreams array of readable stream resources.
-     * @param $serializer MessageSerializer used for messages.
-     * @param $maxFrame ?int Optional maximum frame size. Defaults to 10MB.
+     * @param WritableResourceStream      $writeStream Stream to write to
+     * @param ReadableResourceStream[]    $readStreams array of readable streams
+     * @param MessageSerializer           $serializer Serializer for messages
+     * @param int|null                    $maxFrame    Optional maximum frame size
      */
     public function __construct(
         private readonly WritableResourceStream $writeStream,
@@ -34,9 +34,6 @@ class AmpByteStreamMessageTransport implements MessageTransport
     ) {
         $this->codec = new FrameCodec($serializer, $maxFrame);
         foreach ($readStreams as $readStream) {
-            if (!$readStream instanceof ReadableResourceStream) {
-                throw new InvalidArgumentException('Read streams must be instanceof' . ReadableResourceStream::class);
-            }
             $this->readStreams[] = $readStream;
         }
     }
@@ -58,12 +55,17 @@ class AmpByteStreamMessageTransport implements MessageTransport
     }
 
     /**
-     * @param $stream ReadableResourceStream to read from.
+     * @param ReadableResourceStream $stream Stream to read from
      * @return Message[]
      */
     public function readFromStream(ReadableResourceStream $stream): array
     {
-        $data = @fread($stream->getResource(), $this->maxFrame ?? FrameCodec::DEFAULT_MAX_FRAME);
+        $resource = $stream->getResource();
+        if (!is_resource($resource)) {
+            return [];
+        }
+        $length = $this->maxFrame ?? FrameCodec::DEFAULT_MAX_FRAME;
+        $data = @fread($resource, $length > 0 ? $length : 1);
         if (!is_string($data)) {
             return [];
         }

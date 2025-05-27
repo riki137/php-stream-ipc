@@ -42,8 +42,8 @@ final readonly class JsonMessageSerializer implements MessageSerializer
      * Captures all properties (public, protected, private) using reflection.
      * For nested objects, it includes a `__class` key with the object's class name.
      *
-     * @param $obj object The object to convert.
-     * @return array Associative array representation of the object.
+     * @param object $obj
+     * @return array<string, mixed> Associative array representation of the object
      */
     private function toArray(object $obj): array
     {
@@ -70,8 +70,8 @@ final readonly class JsonMessageSerializer implements MessageSerializer
      * Recursively processes an array, converting any nested objects to their array representations
      * using {@see self::toArray()} and handling nested arrays with {@see self::arrayToArray()}.
      *
-     * @param $arr The array to process.
-     * @return array The processed array with nested objects converted.
+     * @param array<int|string, mixed> $arr The array to process
+     * @return array<int|string, mixed> The processed array with nested objects converted
      */
     private function arrayToArray(array $arr): array
     {

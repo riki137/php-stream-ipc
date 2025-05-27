@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace PhpStreamIpc\Transport;
 
-use Amp\ByteStream\ReadableResourceStream;
 use LogicException;
 use PhpStreamIpc\Message\Message;
 use PhpStreamIpc\Serialization\MessageSerializer;
@@ -30,10 +29,10 @@ final class StreamMessageTransport implements MessageTransport
     /**
      * Constructs a new FramedStreamMessageTransport.
      *
-     * @param $writeStream resource Stream resource for writing messages.
-     * @param $readStreams resource[] Array of stream resources for reading messages.
-     * @param $serializer MessageSerializer used for messages.
-     * @param $frameLimit ?int Maximum allowed size for a single frame.
+     * @param resource              $writeStream Stream resource for writing messages
+     * @param array<int, resource>  $readStreams Array of stream resources for reading messages
+     * @param MessageSerializer     $serializer  Serializer used for messages
+     * @param int|null              $frameLimit  Maximum allowed size for a single frame
      */
     public function __construct(
         $writeStream,
@@ -96,7 +95,7 @@ final class StreamMessageTransport implements MessageTransport
     /**
      * Read and decode any available messages from the given stream.
      *
-     * @param $stream resource Stream resource to read from.
+     * @param resource $stream Stream resource to read from
      * @return Message[]
      */
     public function readFromStream($stream): array
