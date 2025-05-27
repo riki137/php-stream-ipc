@@ -7,139 +7,41 @@ use PhpStreamIpc\Envelope\Id\PidCounterRequestIdGenerator;
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
 use PhpStreamIpc\Serialization\MessageSerializer;
 use PhpStreamIpc\Serialization\NativeMessageSerializer;
-use PhpStreamIpc\Transport\StreamMessageTransport;
 use PhpStreamIpc\Transport\MessageTransport;
-use PhpStreamIpc\Transport\SymfonyProcessMessageTransport;
-use Symfony\Component\Process\Process;
 
 /**
- * Manages IPC sessions for communication over stdio, pipes, or child processes.
- * Facilitates creating sessions, broadcasting notifications, and configuring serialization and request ID generation.
+ * Base class for IpcPeer variants bound to a specific transport implementation.
  */
-final class IpcPeer
+abstract class IpcPeer
 {
-    /** @var IpcSession[] Active sessions created by this peer */
-    private array $sessions = [];
+    /** @var IpcSession[] */
+    protected array $sessions = [];
+    protected MessageSerializer $defaultSerializer;
+    protected RequestIdGenerator $idGen;
 
-    private MessageSerializer $defaultSerializer;
-
-    private RequestIdGenerator $idGen;
-
-    /**
-     * Constructs a new IpcPeer.
-     *
-     * @param MessageSerializer|null $defaultSerializer Optional custom message serializer. Defaults to NativeMessageSerializer.
-     * @param RequestIdGenerator|null $idGen Optional custom request ID generator. Defaults to PidHrtimeRequestIdGenerator.
-     */
-    public function __construct(
-        ?MessageSerializer $defaultSerializer = null,
-        ?RequestIdGenerator $idGen = null
-    ) {
+    public function __construct(?MessageSerializer $defaultSerializer = null, ?RequestIdGenerator $idGen = null)
+    {
         $this->defaultSerializer = $defaultSerializer ?? new NativeMessageSerializer();
         $this->idGen = $idGen ?? new PidCounterRequestIdGenerator();
     }
 
     /**
-     * Creates a new IPC session with the given message transport.
-     *
-     * @param MessageTransport $transport The transport to use for the session.
-     * @return IpcSession The newly created IPC session.
+     * @param MessageTransport $transport
      */
-    public function createSession(MessageTransport $transport): IpcSession
+    protected function createSession(MessageTransport $transport): IpcSession
     {
         $session = new IpcSession($this, $transport, $this->idGen);
         $this->sessions[] = $session;
         return $session;
     }
 
-    /**
-     * Creates a new IPC session using the provided stream resources.
-     *
-     * @param resource $write The stream resource for writing messages.
-     * @param resource $read The primary stream resource for reading messages.
-     * @param resource|null $read2 An optional, additional stream resource for reading messages.
-     * @return IpcSession The created IPC session.
-     */
-    public function createStreamSession($write, $read, $read2 = null): IpcSession
-    {
-        $reads = [$read];
-        if ($read2 !== null) {
-            $reads[] = $read2;
-        }
-        return $this->createSession(
-            new StreamMessageTransport(
-                $write,
-                $reads,
-                $this->defaultSerializer
-            )
-        );
-    }
-
-    /**
-     * Creates a new IPC session that communicates over standard input (STDIN) and standard output (STDOUT).
-     *
-     * @return IpcSession The created IPC session using stdio.
-     */
-    public function createStdioSession(): IpcSession
-    {
-        return $this->createStreamSession(STDOUT, STDIN);
-    }
-
-    /**
-     * Creates a new IPC session for a Symfony Process.
-     * The process is started automatically and its pipes are used for
-     * communication.
-     * @param Process $process not typehinted directly to avoid compile-time dependency on Symfony Process
-     */
-    public function createSymfonyProcessSession($process): IpcSession
-    {
-        return $this->createSession(
-            new SymfonyProcessMessageTransport(
-                $process,
-                $this->defaultSerializer
-            )
-        );
-    }
-
-    /**
-     * Removes an IPC session from this peer.
-     * This effectively stops the peer from managing or ticking the session.
-     *
-     * @param IpcSession $session The session to remove.
-     */
     public function removeSession(IpcSession $session): void
     {
         $this->sessions = array_filter($this->sessions, fn($s) => $s !== $session);
     }
 
-    /**
-     * Perform a single stream_select over all session streams, then dispatch.
-     *
-     * @param float|null $timeout in seconds (null = block indefinitely)
-     */
-    public function tick(?float $timeout = null): void
-    {
-        if ($this->sessions === []) {
-            return;
-        }
+    abstract public function tick(?float $timeout = null): void;
 
-        $byTransport = [];
-        foreach ($this->sessions as $session) {
-            $class = $session->getTransport()::class;
-            $byTransport[$class][] = $session;
-        }
-
-        foreach ($byTransport as $sessions) {
-            $sessions[0]->getTransport()->tick($sessions, $timeout);
-        }
-    }
-
-    /**
-     * Runs the tick loop for a specified duration.
-     * This method will call `tick()` repeatedly until the given number of seconds has elapsed.
-     *
-     * @param float $seconds The duration in seconds to run the tick loop.
-     */
     public function tickFor(float $seconds): void
     {
         $start = microtime(true);

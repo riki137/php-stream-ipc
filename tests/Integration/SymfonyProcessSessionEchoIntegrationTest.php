@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\SymfonyIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 use Symfony\Component\Process\Process;
@@ -27,10 +27,10 @@ final class SymfonyProcessSessionEchoIntegrationTest extends TestCase
 <?php
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\Message;
 
-$peer = new IpcPeer();
+$peer = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 $session->onRequest(fn(Message $m) => $m);
 $peer->tick();
@@ -50,7 +50,7 @@ PHP;
     public function testEchoWithSymfonyProcess(): void
     {
         $process = new Process([PHP_BINARY, $this->scriptPath]);
-        $peer = new IpcPeer();
+        $peer = new SymfonyIpcPeer();
         $session = $peer->createSymfonyProcessSession($process);
 
         $msg = new LogMessage('hi', 'info');

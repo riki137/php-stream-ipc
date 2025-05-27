@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\SymfonyIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 use Symfony\Component\Process\Process;
@@ -30,10 +30,10 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 
-$peer    = new IpcPeer();
+$peer    = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 $session->notify(new LogMessage('p1_1', 'info'));
@@ -52,10 +52,10 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 
-$peer    = new IpcPeer();
+$peer    = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 usleep(50_000);
@@ -81,7 +81,7 @@ PHP;
         $process1 = new Process([PHP_BINARY, $this->scriptPath1]);
         $process2 = new Process([PHP_BINARY, $this->scriptPath2]);
 
-        $peer     = new IpcPeer();
+        $peer     = new SymfonyIpcPeer();
         $session1 = $peer->createSymfonyProcessSession($process1);
         $session2 = $peer->createSymfonyProcessSession($process2);
 

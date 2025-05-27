@@ -22,13 +22,13 @@ final class ResponsePromise
     private float $start;
 
     /**
-     * @internal
-     * Constructs a new MessagePromise.
-     *
-     * @param IpcPeer $peer The IpcPeer instance managing the communication.
+     * @param IpcPeer $peer The peer instance managing the communication.
      * @param IpcSession $session The IpcSession associated with this promise.
      * @param string $id The unique identifier of the request this promise is for.
      * @param ?float $timeout The timeout in seconds for awaiting the response. Null for no timeout.
+     *@internal
+     * Constructs a new MessagePromise.
+     *
      */
     public function __construct(
         private readonly IpcPeer $peer,

@@ -22,7 +22,6 @@ final class StreamMessageTransport implements MessageTransport
     /** @var resource */
     private $writeStream;
 
-    private MessageSerializer $serializer;
 
     private FrameCodec $codec;
 
@@ -44,7 +43,6 @@ final class StreamMessageTransport implements MessageTransport
         ?int $frameLimit = null
     ) {
         $this->writeStream = $writeStream;
-        $this->serializer = $serializer;
         $this->codec = new FrameCodec($serializer, $frameLimit);
         foreach ($readStreams as $stream) {
             $this->readers[(int)$stream] = new StreamFrameReader($stream, $serializer, $frameLimit);

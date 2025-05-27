@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
@@ -30,11 +30,11 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\Message;
 
 // Create a peer that echoes any request back immediately
-$peer    = new IpcPeer();
+$peer    = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 $session->onRequest(function(Message $msg, $session): Message {
     return $msg;
@@ -74,7 +74,7 @@ PHP;
         $this->assertIsResource($proc2, 'Failed to start process 2');
         [$stdin2, $stdout2, $stderr2] = $pipes2;
 
-        $peer     = new IpcPeer();
+        $peer     = new StreamIpcPeer();
         $session1 = $peer->createStreamSession($stdin1, $stdout1, $stderr1);
         $session2 = $peer->createStreamSession($stdin2, $stdout2, $stderr2);
 

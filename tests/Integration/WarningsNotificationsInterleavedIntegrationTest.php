@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace PhpStreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
@@ -29,13 +29,13 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 
 ini_set('display_errors', 'stderr');
 error_reporting(E_ALL);
 
-$peer    = new IpcPeer();
+$peer    = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 trigger_error('warn1', E_USER_WARNING);
@@ -72,7 +72,7 @@ PHP;
 
         [$stdin, $stdout, $stderr] = $pipes;
 
-        $peer    = new IpcPeer();
+        $peer    = new StreamIpcPeer();
         // listen to both STDOUT and STDERR so we see framed msgs *and* raw warnings
         $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 

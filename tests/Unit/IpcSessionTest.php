@@ -9,13 +9,28 @@ use PhpStreamIpc\Envelope\RequestEnvelope;
 use PhpStreamIpc\Envelope\ResponseEnvelope;
 use PHPUnit\Framework\TestCase;
 
+class TestPeer extends IpcPeer
+{
+    public function createFakeSession(FakeTransport $transport): \PhpStreamIpc\IpcSession
+    {
+        return $this->createSession($transport);
+    }
+
+    public function tick(?float $timeout = null): void
+    {
+        foreach ($this->sessions as $session) {
+            $session->getTransport()->tick([$session], $timeout);
+        }
+    }
+}
+
 final class IpcSessionTest extends TestCase
 {
     public function testDispatchRequestSendsResponse(): void
     {
-        $peer = new IpcPeer();
+        $peer = new TestPeer();
         $transport = new FakeTransport();
-        $session = $peer->createSession($transport);
+        $session = $peer->createFakeSession($transport);
 
         $session->onRequest(function (SimpleMessage $msg): LogMessage {
             return new LogMessage($msg->text . '_resp');
@@ -32,9 +47,9 @@ final class IpcSessionTest extends TestCase
 
     public function testDispatchResponseStoresMessage(): void
     {
-        $peer = new IpcPeer();
+        $peer = new TestPeer();
         $transport = new FakeTransport();
-        $session = $peer->createSession($transport);
+        $session = $peer->createFakeSession($transport);
 
         $resp = new ResponseEnvelope('id', new SimpleMessage('ok'));
         $session->dispatch($resp);
@@ -43,9 +58,9 @@ final class IpcSessionTest extends TestCase
 
     public function testDispatchErrorFromHandlerSendsLogMessage(): void
     {
-        $peer = new IpcPeer();
+        $peer = new TestPeer();
         $transport = new FakeTransport();
-        $session = $peer->createSession($transport);
+        $session = $peer->createFakeSession($transport);
 
         $session->onRequest(function () {
             throw new \RuntimeException('boom');
@@ -60,9 +75,9 @@ final class IpcSessionTest extends TestCase
 
     public function testRequestCreatesPromiseAndSendsEnvelope(): void
     {
-        $peer = new IpcPeer();
+        $peer = new TestPeer();
         $transport = new FakeTransport();
-        $session = $peer->createSession($transport);
+        $session = $peer->createFakeSession($transport);
 
         $promise = $session->request(new SimpleMessage('req'));
         $this->assertCount(1, $transport->sent);
@@ -78,9 +93,9 @@ final class IpcSessionTest extends TestCase
 
     public function testOffMessageRemovesHandler(): void
     {
-        $peer = new IpcPeer();
+        $peer = new TestPeer();
         $transport = new FakeTransport();
-        $session = $peer->createSession($transport);
+        $session = $peer->createFakeSession($transport);
 
         $count = 0;
         $h1 = function () use (&$count) { $count++; };
@@ -96,9 +111,9 @@ final class IpcSessionTest extends TestCase
 
     public function testOffRequestRemovesHandler(): void
     {
-        $peer = new IpcPeer();
+        $peer = new TestPeer();
         $transport = new FakeTransport();
-        $session = $peer->createSession($transport);
+        $session = $peer->createFakeSession($transport);
 
         $h1 = function () { return new LogMessage('one'); };
         $h2 = function () { return new LogMessage('two'); };
@@ -114,9 +129,9 @@ final class IpcSessionTest extends TestCase
 
     public function testCloseRemovesSessionFromPeer(): void
     {
-        $peer = new IpcPeer();
+        $peer = new TestPeer();
         $transport = new FakeTransport();
-        $session = $peer->createSession($transport);
+        $session = $peer->createFakeSession($transport);
         $session->close();
 
         $peer->tick();

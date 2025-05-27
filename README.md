@@ -34,7 +34,7 @@ Create a parent process that communicates with a child process:
 
 ```php
 // parent.php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 
 // Launch child process
@@ -47,7 +47,7 @@ $process = proc_open('php child.php', $descriptors, $pipes);
 [$stdin, $stdout, $stderr] = $pipes;
 
 // Create IPC session
-$peer = new IpcPeer();
+ $peer = new StreamIpcPeer();
 $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
 // Send a request to the child and wait for response
@@ -71,7 +71,7 @@ use Symfony\Component\Process\Process;
 
 $process = new Process([PHP_BINARY, 'child.php']);
 $process->setTimeout(0); // disable Process timeouts if desired
-$peer = new IpcPeer();
+$peer = new SymfonyIpcPeer();
 $session = $peer->createSymfonyProcessSession($process);
 
 $response = $session->request(new LogMessage('Hello from parent!'), 5.0)->await();
@@ -89,11 +89,11 @@ composer require symfony/process
 
 ```php
 // child.php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
-$peer = new IpcPeer();
+ $peer = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 // Handle requests from parent
@@ -117,10 +117,10 @@ Create a background process that regularly sends status updates:
 
 ```php
 // backgroundWorker.php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 
-$peer = new IpcPeer();
+ $peer = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 // Simulate background work
@@ -138,7 +138,7 @@ $session->notify(new LogMessage("Task completed successfully", "success"));
 
 ```php
 // monitor.php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
@@ -150,7 +150,7 @@ $descriptors = [
 $process = proc_open('php backgroundWorker.php', $descriptors, $pipes);
 [$stdin, $stdout, $stderr] = $pipes;
 
-$peer = new IpcPeer();
+ $peer = new StreamIpcPeer();
 $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
 // Listen for status updates
@@ -172,11 +172,11 @@ proc_close($process);
 
 ```php
 // server.php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
-$peer = new IpcPeer();
+ $peer = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 $session->onRequest(function(Message $msg, $session): Message {
@@ -198,7 +198,7 @@ $peer->tick();
 
 ```php
 // client.php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
@@ -206,7 +206,7 @@ $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
 $process = proc_open('php server.php', $descriptors, $pipes);
 [$stdin, $stdout, $stderr] = $pipes;
 
-$peer = new IpcPeer();
+ $peer = new StreamIpcPeer();
 $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
 // Listen for progress notifications
@@ -228,12 +228,12 @@ proc_close($process);
 
 ```php
 // manager.php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
 // Create IPC peer
-$peer = new IpcPeer();
+ $peer = new StreamIpcPeer();
 $sessions = [];
 $workers = [];
 
@@ -270,11 +270,11 @@ foreach ($workers as $process) {
 
 ```php
 // worker.php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
-$peer = new IpcPeer();
+ $peer = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 // Get worker ID from command line
@@ -317,10 +317,10 @@ final readonly class TaskMessage implements Message
 
 ```php
 // usage.php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use App\Messages\TaskMessage;
 
-$peer = new IpcPeer();
+ $peer = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 // Send a custom task message
@@ -338,10 +338,10 @@ $response = $session->request($task)->await();
 
 ```php
 // client.php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 
-$peer = new IpcPeer();
+ $peer = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 try {
@@ -384,11 +384,11 @@ $session->onRequest(function(Message $msg, IpcSession $session): ?Message {
 ### Custom Serialization
 
 ```php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Serialization\JsonMessageSerializer;
 
 // Create a peer with custom serializer
-$peer = new IpcPeer(
+$peer = new StreamIpcPeer(
     new JsonMessageSerializer()
 );
 
@@ -398,7 +398,7 @@ $session = $peer->createStdioSession();
 ### Custom Request ID Generation
 
 ```php
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
 
 class UuidRequestIdGenerator implements RequestIdGenerator
@@ -417,7 +417,7 @@ class UuidRequestIdGenerator implements RequestIdGenerator
 }
 
 // Create peer with custom ID generator
-$peer = new IpcPeer(
+$peer = new StreamIpcPeer(
     null, // use default serializer
     new UuidRequestIdGenerator()
 );

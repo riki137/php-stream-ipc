@@ -3,7 +3,7 @@ namespace PhpStreamIpc\Tests\Unit;
 
 use Amp\ByteStream\ReadableResourceStream;
 use Amp\ByteStream\WritableResourceStream;
-use PhpStreamIpc\IpcPeer;
+use PhpStreamIpc\AmphpIpcPeer;
 use PhpStreamIpc\Serialization\NativeMessageSerializer;
 use PhpStreamIpc\Tests\Fixtures\SimpleMessage;
 use PhpStreamIpc\Transport\AmpByteStreamMessageTransport;
@@ -60,8 +60,8 @@ final class AmpByteStreamMessageTransportTest extends TestCase
             new NativeMessageSerializer()
         );
 
-        $peer = new IpcPeer();
-        $session = $peer->createSession($transport);
+        $peer = new AmphpIpcPeer();
+        $session = $peer->createSessionFromTransport($transport);
 
         $received = [];
         $session->onMessage(function (SimpleMessage $msg) use (&$received) {
