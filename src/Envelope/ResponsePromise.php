@@ -26,9 +26,7 @@ final class ResponsePromise
      * @param IpcSession $session The IpcSession associated with this promise.
      * @param string $id The unique identifier of the request this promise is for.
      * @param ?float $timeout The timeout in seconds for awaiting the response. Null for no timeout.
-     *@internal
-     * Constructs a new MessagePromise.
-     *
+     * @internal
      */
     public function __construct(
         private readonly IpcPeer $peer,
