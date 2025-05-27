@@ -16,8 +16,8 @@ final readonly class RequestEnvelope implements Message
     /**
      * Constructs a new RequestEnvelope.
      *
-     * @param string $id The unique identifier for this request. This ID will be used to match the response.
-     * @param Message $request The actual {@see Message} payload of the request.
+     * @param $id      string Unique identifier for this request, used to match the response.
+     * @param $request Message The message payload of the request.
      */
     public function __construct(public string $id, public Message $request)
     {

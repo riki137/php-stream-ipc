@@ -32,9 +32,9 @@ final class IpcSession
     /**
      * Constructs a new IpcSession.
      *
-     * @param IpcPeer $peer The parent peer managing this session.
-     * @param MessageTransport $transport The transport layer for sending/receiving messages.
-     * @param RequestIdGenerator $idGen The generator for creating unique request IDs.
+     * @param $peer      IpcPeer Parent peer managing this session.
+     * @param $transport MessageTransport Transport used for sending and receiving messages.
+     * @param $idGen     RequestIdGenerator Generator for creating unique request IDs.
      */
     public function __construct(
         private readonly IpcPeer $peer,
@@ -45,8 +45,6 @@ final class IpcSession
 
     /**
      * Gets the message transport associated with this session.
-     *
-     * @return MessageTransport The message transport instance.
      */
     public function getTransport(): MessageTransport
     {
@@ -55,12 +53,10 @@ final class IpcSession
 
     /**
      * Dispatches an incoming message to the appropriate handlers.
-     * If the message is a request, it's passed to request handlers.
-     * If it's a response, it's stored for a pending request.
-     * Otherwise, it's passed to general message handlers.
+     * If the message is a request it is forwarded to request handlers;
+     * responses are stored until collected.
      *
-     * @param Message $envelope The incoming message (can be a RequestEnvelope, ResponseEnvelope, or other Message).
-     * @throws Throwable (anything thrown by an onMessage handler)
+     * @throws Throwable If a message handler throws.
      */
     public function dispatch(Message $envelope): void
     {
@@ -99,9 +95,7 @@ final class IpcSession
     }
 
     /**
-     * Sends a notification message (a message that doesn't expect a direct response).
-     *
-     * @param Message $msg The message to send.
+     * Sends a notification message that does not expect a response.
      */
     public function notify(Message $msg): void
     {
@@ -109,11 +103,9 @@ final class IpcSession
     }
 
     /**
-     * Sends a request message and waits for a response.
+     * Sends a request message and returns a promise for the response.
      *
-     * @param Message $msg The request message to send.
-     * @param float|null $timeout Optional timeout in seconds. If null, waits indefinitely.
-     * @return ResponsePromise The response message promise.
+     * @param $timeout ?float Optional timeout in seconds. Null to wait indefinitely.
      */
     public function request(Message $msg, ?float $timeout = null): ResponsePromise
     {
@@ -137,14 +129,9 @@ final class IpcSession
     }
 
     /**
-     * Registers a handler for incoming notification messages (messages that are not requests or responses).
+     * Registers a handler for incoming notification messages.
      *
-     * The handler callable should accept two arguments:
-     * - `Message $message`: The received message.
-     * - `IpcSession $session`: The current IPC session instance.
-     * It should return `void`.
-     *
-     * @param callable(Message, IpcSession): void $handler The callback to execute when a message is received.
+     * @param callable $handler Callback receiving the message and the session.
      */
     public function onMessage(callable $handler): void
     {
@@ -153,8 +140,6 @@ final class IpcSession
 
     /**
      * Unregisters a previously registered message handler.
-     *
-     * @param callable $handler The handler to remove. Must be the same instance as was registered.
      */
     public function offMessage(callable $handler): void
     {
@@ -169,12 +154,7 @@ final class IpcSession
     /**
      * Registers a handler for incoming request messages.
      *
-     * The handler callable should accept two arguments:
-     * - `Message $request`: The received request message.
-     * - `IpcSession $session`: The current IPC session instance.
-     * It should return a `Message` object as the response, or `null` if this handler doesn't process the request.
-     *
-     * @param callable(Message, IpcSession): (Message|null) $handler The callback to execute when a request is received.
+     * @param callable $handler Callback receiving the request message and the session.
      */
     public function onRequest(callable $handler): void
     {
@@ -183,8 +163,6 @@ final class IpcSession
 
     /**
      * Unregisters a previously registered request handler.
-     *
-     * @param callable $handler The handler to remove. Must be the same instance as was registered.
      */
     public function offRequest(callable $handler): void
     {

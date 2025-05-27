@@ -14,9 +14,10 @@ use function Amp\Future\awaitFirst;
 final class AmphpIpcPeer extends IpcPeer
 {
     /**
-     * @param WritableResourceStream $write
-     * @param ReadableResourceStream[] $reads
-     * @return IpcSession
+     * Create a session from Amp byte-streams.
+     *
+     * @param $write  WritableResourceStream for output.
+     * @param $reads  ReadableResourceStream[] Array of readable streams used for input.
      */
     public function createByteStreamSession(WritableResourceStream $write, array $reads): IpcSession
     {
@@ -36,11 +37,17 @@ final class AmphpIpcPeer extends IpcPeer
         );
     }
 
+    /**
+     * Register an existing {@see AmpByteStreamMessageTransport} instance.
+     */
     public function createSessionFromTransport(AmpByteStreamMessageTransport $transport): IpcSession
     {
         return $this->createSession($transport);
     }
 
+    /**
+     * Drive all sessions by waiting for data on their read streams.
+     */
     public function tick(?float $timeout = null): void
     {
         $defs = [];

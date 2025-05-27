@@ -8,15 +8,24 @@ use PhpStreamIpc\Serialization\MessageSerializer;
 use PhpStreamIpc\Transport\SymfonyProcessMessageTransport;
 use Symfony\Component\Process\Process;
 
+/**
+ * IpcPeer implementation built around Symfony's {@see Process} component.
+ */
 final class SymfonyIpcPeer extends IpcPeer
 {
     private const DEFAULT_SLEEP_TICK = 500;
 
+    /**
+     * @param $sleepTick ?int Delay in microseconds between polling the process output.
+     */
     public function __construct(?MessageSerializer $defaultSerializer = null, ?RequestIdGenerator $idGen = null, private readonly ?int $sleepTick = null)
     {
         parent::__construct($defaultSerializer, $idGen);
     }
 
+    /**
+     * Start communicating with the given Symfony {@see Process} instance.
+     */
     public function createSymfonyProcessSession(Process $process): IpcSession
     {
         return $this->createSession(
@@ -27,11 +36,17 @@ final class SymfonyIpcPeer extends IpcPeer
         );
     }
 
+    /**
+     * Register an existing SymfonyProcessMessageTransport instance.
+     */
     public function createSessionFromTransport(SymfonyProcessMessageTransport $transport): IpcSession
     {
         return $this->createSession($transport);
     }
 
+    /**
+     * Poll the attached processes for output and dispatch any messages.
+     */
     public function tick(?float $timeout = null): void
     {
         $start = microtime(true);

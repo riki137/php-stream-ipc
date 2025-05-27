@@ -12,8 +12,6 @@ interface RequestIdGenerator
 {
     /**
      * Generates a new, unique string identifier.
-     *
-     * @return string A unique identifier, typically for an IPC request.
      */
     public function generate(): string;
 }

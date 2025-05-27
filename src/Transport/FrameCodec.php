@@ -111,6 +111,9 @@ final class FrameCodec
         return $messages;
     }
 
+    /**
+     * Returns true when partial data is buffered but no complete frame is available yet.
+     */
     public function hasBufferedData(): bool
     {
         return $this->buffer !== '';

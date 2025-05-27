@@ -29,6 +29,9 @@ final class SymfonyProcessMessageTransport implements MessageTransport
 
     private Closure $callback;
 
+    /**
+     * @param ?int $frameLimit Maximum allowed size of a single message frame.
+     */
     public function __construct(
         private readonly Process $process,
         MessageSerializer $serializer,
@@ -46,11 +49,17 @@ final class SymfonyProcessMessageTransport implements MessageTransport
         $process->start($this->callback);
     }
 
+    /**
+     * Write a message to the child process.
+     */
     public function send(Message $message): void
     {
         $this->input->write($this->codec->pack($message));
     }
 
+    /**
+     * Check whether the process is still running.
+     */
     public function isRunning(): bool
     {
         return $this->process->isRunning();

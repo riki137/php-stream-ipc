@@ -19,8 +19,6 @@ final class PidCounterRequestIdGenerator implements RequestIdGenerator
      * Generates a new unique request ID.
      * The ID is a string composed of the PID and an incrementing counter.
      * Example format: "<pid>.<counter>"
-     *
-     * @return string A unique request identifier.
      */
     public function generate(): string
     {

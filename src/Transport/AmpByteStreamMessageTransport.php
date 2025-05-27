@@ -21,10 +21,10 @@ class AmpByteStreamMessageTransport implements MessageTransport
     private FrameCodec $codec;
 
     /**
-     * @param WritableResourceStream $writeStream
-     * @param ReadableResourceStream[] $readStreams
-     * @param MessageSerializer $serializer
-     * @param int|null $maxFrame
+     * @param $writeStream WritableResourceStream to write to.
+     * @param $readStreams array of readable stream resources.
+     * @param $serializer MessageSerializer used for messages.
+     * @param $maxFrame ?int Optional maximum frame size. Defaults to 10MB.
      */
     public function __construct(
         private readonly WritableResourceStream $writeStream,
@@ -41,6 +41,9 @@ class AmpByteStreamMessageTransport implements MessageTransport
         }
     }
 
+    /**
+     * Serialize and write the message to the writable stream.
+     */
     public function send(Message $message): void
     {
         $this->writeStream->write($this->codec->pack($message));
@@ -55,7 +58,7 @@ class AmpByteStreamMessageTransport implements MessageTransport
     }
 
     /**
-     * @param ReadableResourceStream $stream
+     * @param $stream ReadableResourceStream to read from.
      * @return Message[]
      */
     public function readFromStream(ReadableResourceStream $stream): array

@@ -25,8 +25,7 @@ final readonly class JsonMessageSerializer implements MessageSerializer
      * The resulting JSON includes a `__class` key with the original class name and all its properties,
      * including private and protected ones, to facilitate accurate deserialization.
      *
-     * @param Message $data The {@see Message} object to serialize.
-     * @return string The JSON string representation of the message.
+     * @param $data Message The message to serialize.
      * @throws JsonException If JSON encoding fails.
      */
     public function serialize(Message $data): string
@@ -43,7 +42,7 @@ final readonly class JsonMessageSerializer implements MessageSerializer
      * Captures all properties (public, protected, private) using reflection.
      * For nested objects, it includes a `__class` key with the object's class name.
      *
-     * @param object $obj The object to convert.
+     * @param $obj object The object to convert.
      * @return array Associative array representation of the object.
      */
     private function toArray(object $obj): array
@@ -71,7 +70,7 @@ final readonly class JsonMessageSerializer implements MessageSerializer
      * Recursively processes an array, converting any nested objects to their array representations
      * using {@see self::toArray()} and handling nested arrays with {@see self::arrayToArray()}.
      *
-     * @param array $arr The array to process.
+     * @param $arr The array to process.
      * @return array The processed array with nested objects converted.
      */
     private function arrayToArray(array $arr): array
@@ -95,8 +94,7 @@ final readonly class JsonMessageSerializer implements MessageSerializer
      * If deserialization fails due to invalid JSON, an unknown class, or instantiation issues,
      * it returns a {@see LogMessage} with level 'error' and the original JSON data as its message.
      *
-     * @param string $data The JSON string to deserialize.
-     * @return Message The deserialized {@see Message} object, or a {@see LogMessage} on error.
+     * @param $data string The JSON string to deserialize.
      */
     public function deserialize(string $data): Message
     {
@@ -144,7 +142,7 @@ final readonly class JsonMessageSerializer implements MessageSerializer
      * If an array contains a `__class` key, it attempts to instantiate and populate that class.
      * Otherwise, it processes the array as a plain associative or indexed array.
      *
-     * @param mixed $data The data (typically an array) to reconstruct from.
+     * @param $data mixed Data (typically an array) to reconstruct from.
      * @return mixed The reconstructed object, array, or scalar value.
      */
     private function fromArray(mixed $data): mixed

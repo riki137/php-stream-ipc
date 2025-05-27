@@ -21,12 +21,19 @@ abstract class IpcPeer
 
     protected RequestIdGenerator $idGen;
 
+    /**
+     * Initialise the peer with optional serializer and ID generator.
+     * Defaults are used when arguments are not supplied.
+     */
     public function __construct(?MessageSerializer $defaultSerializer = null, ?RequestIdGenerator $idGen = null)
     {
         $this->defaultSerializer = $defaultSerializer ?? new NativeMessageSerializer();
         $this->idGen = $idGen ?? new PidCounterRequestIdGenerator();
     }
 
+    /**
+     * Wrap the given transport in an {@see IpcSession} and track it.
+     */
     protected function createSession(MessageTransport $transport): IpcSession
     {
         $session = new IpcSession($this, $transport, $this->idGen);
@@ -34,6 +41,9 @@ abstract class IpcPeer
         return $session;
     }
 
+    /**
+     * Remove a session previously created by this peer.
+     */
     public function removeSession(IpcSession $session): void
     {
         $this->sessions = array_filter($this->sessions, fn($s) => $s !== $session);
@@ -41,6 +51,9 @@ abstract class IpcPeer
 
     abstract public function tick(?float $timeout = null): void;
 
+    /**
+     * Repeatedly calls {@see tick()} for the specified duration.
+     */
     public function tickFor(float $seconds): void
     {
         $start = microtime(true);
