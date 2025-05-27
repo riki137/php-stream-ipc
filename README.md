@@ -1,63 +1,195 @@
-# PHP Stream IPC
+# PHP Stream IPC: Lightweight Inter-Process Communication for PHP
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/riki137/php-stream-ipc.svg)](https://packagist.org/packages/riki137/php-stream-ipc)
-[![codecov](https://codecov.io/gh/riki137/php-stream-ipc/branch/main/graph/badge.svg)](https://codecov.io/gh/riki137/php-stream-ipc)
-[![Tests](https://github.com/riki137/php-stream-ipc/actions/workflows/tests.yml/badge.svg)](https://github.com/riki137/php-stream-ipc/actions/workflows/tests.yml)
-[![PHPStan](https://img.shields.io/badge/PHPStan-level%208-brightgreen.svg)](https://github.com/phpstan/phpstan)
-[![PHP 8.2+](https://img.shields.io/badge/php-^8.2-8892BF.svg)](https://www.php.net/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Packagist Version](https://img.shields.io/packagist/v/riki137/php-stream-ipc.svg)](https://packagist.org/packages/riki137/php-stream-ipc)
+[![Code Coverage](https://codecov.io/gh/riki137/php-stream-ipc/branch/main/graph/badge.svg)](https://codecov.io/gh/riki137/php-stream-ipc)
+[![GitHub Tests](https://github.com/riki137/php-stream-ipc/actions/workflows/tests.yml/badge.svg)](https://github.com/riki137/php-stream-ipc/actions/workflows/tests.yml)
+[![PHPStan Level 8](https://img.shields.io/badge/PHPStan-Level%208-brightgreen.svg)](https://github.com/phpstan/phpstan)
+[![PHP Version](https://img.shields.io/badge/php-8.2%2B-8892BF.svg)](https://www.php.net/)
+[![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
+**PHP Stream IPC** provides a fast, reliable, and easy-to-use Inter-Process Communication (IPC) mechanism for PHP applications. It's ideal for background jobs, multi-process applications, worker management, and seamless PHP script communication via streams, pipes, sockets, and stdio.
 
-A lightweight PHP library for Inter-Process Communication (IPC) over streams, pipes, and stdio with built-in request-response correlation, message framing, and serialization.
+---
 
-## 🚀 Features
+## 🚀 Key Features
 
-- **Simple API**: Intuitive interface for sending messages between processes
-- **Request-Response Correlation**: Automatic matching of responses to requests
-- **Message Framing**: Reliable message boundary detection with magic number headers
-- **Multiple Transport Modes**: Works with stdio, pipes, sockets, and file streams
-- **Serialization Options**: Supports multiple serialization formats (native PHP, JSON)
-- **Event-Driven Architecture**: Register handlers for notifications and requests
-- **Timeouts**: Built-in timeout handling for requests
-- **Error Handling**: Graceful handling of process crashes and stream closures
+* **Zero Dependencies:** No external dependencies, pure PHP.
+* **Easy Integration:** Simple API with minimal configuration.
+* **Reliable Framing:** Ensures message integrity with length-prefixed frames and magic headers.
+* **Request-Response Pattern:** Correlate requests and responses automatically.
+* **Multiple Transports:** Supports stdio, pipes, sockets, and Symfony processes.
+* **Flexible Serialization:** Choose native PHP serialization or JSON-based serialization.
+* **Event-Driven Architecture:** Register custom handlers for messages and requests.
+* **Timeout Handling:** Built-in request timeouts and exception management.
+* **Robust Error Handling:** Graceful stream closures and exception logging.
 
-## 📦 Installation
+---
+
+## 📦 Quick Installation
+
+Install via Composer:
 
 ```bash
 composer require riki137/php-stream-ipc
 ```
 
-## 🔍 Quick Start Guide
+---
 
-### Basic Parent-Child Communication
+## ⚡ Quick Usage Example
 
-Create a parent process that communicates with a child process:
+### Parent-Child IPC Example:
+
+#### Parent (`parent.php`):
 
 ```php
-// parent.php
 use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 
-// Launch child process
-$descriptors = [
-    0 => ['pipe', 'r'], // child's STDIN
-    1 => ['pipe', 'w'], // child's STDOUT
-    2 => ['pipe', 'w']  // child's STDERR
-];
-$process = proc_open('php child.php', $descriptors, $pipes);
-[$stdin, $stdout, $stderr] = $pipes;
+$process = proc_open('php child.php', [
+    ['pipe', 'r'], ['pipe', 'w'], ['pipe', 'w']
+], $pipes);
 
-// Create IPC session
- $peer = new StreamIpcPeer();
-$session = $peer->createStreamSession($stdin, $stdout, $stderr);
+$peer = new StreamIpcPeer();
+$session = $peer->createStreamSession($pipes[0], $pipes[1], $pipes[2]);
 
-// Send a request to the child and wait for response
-$response = $session->request(new LogMessage('Hello from parent!'), 5.0)->await();
+$response = $session->request(new LogMessage('Ping!'))->await();
 echo "Child responded: {$response->message}\n";
 
-// Clean up
 proc_close($process);
 ```
+
+#### Child (`child.php`):
+
+```php
+use PhpStreamIpc\StreamIpcPeer;
+use PhpStreamIpc\Message\LogMessage;
+use PhpStreamIpc\Message\Message;
+
+$peer = new StreamIpcPeer();
+$session = $peer->createStdioSession();
+
+$session->onRequest(fn(Message $msg) => new LogMessage("Pong!"));
+$peer->tick();
+```
+
+---
+
+## 📖 Common Use Cases
+
+* **Background Tasks:** Run asynchronous workers with real-time communication.
+* **Multi-Process PHP Applications:** Efficiently manage parallel PHP scripts.
+* **Real-time Progress Tracking:** Provide updates on task progress via IPC.
+* **Server-Client PHP Scripts:** Use PHP scripts as IPC-driven microservices.
+
+---
+
+## 📚 Understanding the Message Flow
+
+1. **Direct Notifications**: Send messages from one process to another with `notify()`
+2. **Request-Response**: Send a request with `request()` and get a correlated response
+3. **Progress Updates**: A process can send notifications while processing a request
+4. **Event Handling**: Register callbacks for messages and requests with `onMessage()` and `onRequest()`
+
+---
+
+### 🔄 Message Handling
+
+Register event-driven handlers easily:
+
+```php
+// Notification Handler
+$session->onMessage(function (Message $msg) {
+    echo "Received: {$msg->message}\n";
+});
+
+// Request Handler with Response
+$session->onRequest(function (Message $msg): ?Message {
+    return new LogMessage("Processed request: {$msg->message}");
+});
+```
+
+### ⏳ Timeout and Exception Management
+
+Handle request timeouts gracefully:
+
+```php
+use PhpStreamIpc\Transport\TimeoutException;
+
+try {
+    $session->request(new LogMessage("Quick task"), 3.0)->await();
+} catch (TimeoutException $e) {
+    echo "Task timed out: {$e->getMessage()}\n";
+}
+```
+
+### 🎛 Advanced Configuration
+
+#### Custom Serialization (JSON):
+
+```php
+use PhpStreamIpc\Serialization\JsonMessageSerializer;
+$peer = new StreamIpcPeer(new JsonMessageSerializer());
+```
+
+#### Custom Request ID Generation (UUID):
+
+```php
+use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
+
+class UuidRequestIdGenerator implements RequestIdGenerator {
+    public function generate(): string {
+        return bin2hex(random_bytes(16));
+    }
+}
+
+$peer = new StreamIpcPeer(null, new UuidRequestIdGenerator());
+```
+
+---
+
+## 🛠 Development & Contribution
+
+Contributions are welcome! To contribute:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Commit changes (`git commit -m "Add my feature"`)
+4. Push your branch (`git push origin feature/my-feature`)
+5. Open a Pull Request on GitHub
+
+**Current areas open for contributions:**
+
+* Enhancing AMPHP transport stability and tests
+* Improving error handling documentation and examples
+
+---
+
+## 📄 License
+
+PHP Stream IPC is open-source software licensed under the **MIT License**. See [LICENSE](LICENSE) for more details.
+
+---
+
+## 📈 SEO Keywords
+
+**IPC PHP, PHP inter-process communication, PHP streams, PHP IPC library, IPC pipes, Symfony Process IPC, asynchronous PHP, PHP messaging, PHP IPC example, PHP parallel processing**
+
+---
+
+## 📌 Tags
+
+`php`, `ipc`, `symfony-process`, `stream`, `asynchronous`, `inter-process communication`, `message passing`, `php-library`, `ipc-framework`
+
+---
+
+> For issues, feature requests, or general inquiries, please [open an issue](https://github.com/riki137/php-stream-ipc/issues).
+
+---
+
+© [riki137](https://github.com/riki137)
+
+
+## 🧩 Documentation
 
 ### Using Symfony's Process Component
 
@@ -94,7 +226,7 @@ use PhpStreamIpc\StreamIpcPeer;
 use PhpStreamIpc\Message\LogMessage;
 use PhpStreamIpc\Message\Message;
 
- $peer = new StreamIpcPeer();
+$peer = new StreamIpcPeer();
 $session = $peer->createStdioSession();
 
 // Handle requests from parent
@@ -110,9 +242,8 @@ $session->onRequest(function(Message $msg, $session): Message {
 $peer->tick();
 ```
 
-## 🧩 Common Use Cases
 
-### 1. Long-Running Background Process
+### Long-Running Background Process
 
 Create a background process that regularly sends status updates:
 
@@ -169,7 +300,7 @@ while (proc_get_status($process)['running']) {
 proc_close($process);
 ```
 
-### 2. Request-Response Pattern with Progress Updates
+### Request-Response Pattern with Progress Updates
 
 ```php
 // server.php
@@ -225,7 +356,7 @@ echo "Final response: {$response->message}\n";
 proc_close($process);
 ```
 
-### 3. Multiple Parallel Workers
+### Multiple Parallel Workers
 
 ```php
 // manager.php
@@ -296,7 +427,7 @@ $session->onRequest(function(Message $msg, $session) use ($workerId): Message {
 $peer->tick();
 ```
 
-### 4. Custom Message Types
+### Custom Message Types
 
 Define custom message types by implementing the `Message` interface:
 
@@ -335,7 +466,7 @@ $session->notify($task);
 $response = $session->request($task)->await();
 ```
 
-### 5. Handling Timeouts
+### Handling Timeouts
 
 ```php
 // client.php
@@ -355,7 +486,7 @@ try {
 }
 ```
 
-## 🔄 Event-Driven Architecture
+### 🔄 Event-Driven Architecture
 
 PHP Stream IPC uses an event-driven model where you can register handlers for different types of events:
 
@@ -380,9 +511,9 @@ $session->onRequest(function(Message $msg, IpcSession $session): ?Message {
 });
 ```
 
-## 🔋 Advanced Configuration
+### 🔋 Advanced Configuration
 
-### Custom Serialization
+#### Custom Serialization
 
 ```php
 use PhpStreamIpc\StreamIpcPeer;
@@ -396,7 +527,7 @@ $peer = new StreamIpcPeer(
 $session = $peer->createStdioSession();
 ```
 
-### Custom Request ID Generation
+#### Custom Request ID Generation
 
 ```php
 use PhpStreamIpc\StreamIpcPeer;
@@ -423,23 +554,3 @@ $peer = new StreamIpcPeer(
     new UuidRequestIdGenerator()
 );
 ```
-
-## 📚 Understanding the Message Flow
-
-1. **Direct Notifications**: Send messages from one process to another with `notify()`
-2. **Request-Response**: Send a request with `request()` and get a correlated response
-3. **Progress Updates**: A process can send notifications while processing a request
-4. **Event Handling**: Register callbacks for messages and requests with `onMessage()` and `onRequest()`
-
-## 🤝 Contributing
-
-`amphp/byte-stream` support has not been tested enough. In the meantime, contributions are welcome! Please feel free to submit a Pull Request.
-
-I want to keep the library pretty thin, but extendable. If you have a use case that you think would be useful, please open an issue and I'll see what I can do.
-
-I am open to breaking changes if they are needed to make the library more flexible.
-
-
-## 📄 License
-
-The MIT License (MIT). Please see [License File](LICENSE) for more information.
