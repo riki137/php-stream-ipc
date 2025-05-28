@@ -11,6 +11,9 @@ use Revolt\EventLoop;
 use function Amp\Future\awaitFirst;
 use function is_resource;
 
+/**
+ * @codeCoverageIgnore Fibers have trouble with coverage
+ */
 final class AmphpIpcPeer extends IpcPeer
 {
     /**

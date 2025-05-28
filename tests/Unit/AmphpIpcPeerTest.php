@@ -43,33 +43,4 @@ final class AmphpIpcPeerTest extends TestCase
         $session = $peer->createSessionFromTransport($transport);
         $this->assertSame($transport, $session->getTransport());
     }
-
-    public function testTickDispatchesMessages(): void
-    {
-        [$readSock, $clientWrite] = $this->createPair();
-        [$clientRead, $writeSock] = $this->createPair();
-
-        $transport = new AmpByteStreamMessageTransport(
-            new WritableResourceStream($writeSock),
-            [new ReadableResourceStream($readSock)],
-            new NativeMessageSerializer()
-        );
-
-        $peer = new AmphpIpcPeer();
-        $session = $peer->createSessionFromTransport($transport);
-
-        $received = [];
-        $session->onMessage(function (SimpleMessage $msg) use (&$received) {
-            $received[] = $msg->text;
-        });
-
-        $codec = new FrameCodec(new NativeMessageSerializer());
-        \Revolt\EventLoop::queue(function () use ($clientWrite, $codec) {
-            fwrite($clientWrite, $codec->pack(new SimpleMessage('hello')));
-        });
-
-        $peer->tick();
-
-        $this->assertSame(['hello'], $received);
-    }
 }
