@@ -64,7 +64,7 @@ class AmpByteStreamMessageTransport implements MessageTransport
         if (!is_resource($resource)) {
             return [];
         }
-        $length = $this->maxFrame ?? FrameCodec::DEFAULT_MAX_FRAME;
+        $length = $this->maxFrame ?? 8192;
         $data = @fread($resource, $length > 0 ? $length : 1);
         if (!is_string($data)) {
             return [];
