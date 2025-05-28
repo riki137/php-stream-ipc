@@ -1,8 +1,8 @@
 # 🚀 **PHP Stream IPC**: Simple, Reliable Inter-Process Communication in Pure PHP
 
-[![Packagist Version](https://img.shields.io/packagist/v/riki137/php-stream-ipc.svg)](https://packagist.org/packages/riki137/php-stream-ipc)
-[![Code Coverage](https://codecov.io/gh/riki137/php-stream-ipc/branch/main/graph/badge.svg)](https://codecov.io/gh/riki137/php-stream-ipc)
-[![GitHub Tests](https://github.com/riki137/php-stream-ipc/actions/workflows/tests.yml/badge.svg)](https://github.com/riki137/php-stream-ipc/actions/workflows/tests.yml)
+[![Packagist Version](https://img.shields.io/packagist/v/riki137/stream-ipc.svg)](https://packagist.org/packages/riki137/stream-ipc)
+[![Code Coverage](https://codecov.io/gh/riki137/stream-ipc/branch/main/graph/badge.svg)](https://codecov.io/gh/riki137/stream-ipc)
+[![GitHub Tests](https://github.com/riki137/stream-ipc/actions/workflows/tests.yml/badge.svg)](https://github.com/riki137/stream-ipc/actions/workflows/tests.yml)
 [![PHPStan Level 8](https://img.shields.io/badge/PHPStan-Level%208-brightgreen.svg)](https://github.com/phpstan/phpstan)
 [![PHP Version](https://img.shields.io/badge/php-8.2%2B-8892BF.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
@@ -32,7 +32,7 @@ Whether you're building scalable PHP services, handling parallel background proc
 Install with Composer in seconds:
 
 ```bash
-composer require riki137/php-stream-ipc
+composer require riki137/stream-ipc
 ```
 
 ---
@@ -43,7 +43,7 @@ composer require riki137/php-stream-ipc
 Install via Composer:
 
 ```bash
-composer require riki137/php-stream-ipc
+composer require riki137/stream-ipc
 ```
 
 ---
@@ -195,7 +195,7 @@ PHP Stream IPC is open-source software licensed under the **MIT License**. See [
 
 ---
 
-> For issues, feature requests, or general inquiries, please [open an issue](https://github.com/riki137/php-stream-ipc/issues).
+> For issues, feature requests, or general inquiries, please [open an issue](https://github.com/riki137/stream-ipc/issues).
 
 ---
 
