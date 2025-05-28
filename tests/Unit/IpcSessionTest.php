@@ -136,4 +136,32 @@ final class IpcSessionTest extends TestCase
 
         $this->assertSame([], $transport->readCalls);
     }
+
+    public function testDispatchThrowsOnMessageHandlerError(): void
+    {
+        $peer = new TestPeer();
+        $transport = new FakeTransport();
+        $session = $peer->createFakeSession($transport);
+
+        $session->onMessage(function () {
+            throw new \RuntimeException('fail');
+        });
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('fail');
+        $session->dispatch(new SimpleMessage('hi'));
+    }
+
+    public function testNotifySendsMessage(): void
+    {
+        $peer = new TestPeer();
+        $transport = new FakeTransport();
+        $session = $peer->createFakeSession($transport);
+
+        $msg = new SimpleMessage('notice');
+        $session->notify($msg);
+
+        $this->assertCount(1, $transport->sent);
+        $this->assertSame($msg, $transport->sent[0]);
+    }
 }

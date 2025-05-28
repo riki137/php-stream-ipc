@@ -4,6 +4,8 @@ namespace StreamIpc\Tests\Unit;
 use StreamIpc\IpcPeer;
 use StreamIpc\Tests\Fixtures\FakeStreamTransport;
 use StreamIpc\IpcSession;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Transport\StreamMessageTransport;
 use PHPUnit\Framework\TestCase;
 
 class TestStreamPeer extends IpcPeer
@@ -50,5 +52,40 @@ final class NativeIpcPeerTest extends TestCase
         $peer->tick();
 
         $this->assertSame([], $t->tickArgs);
+    }
+
+    public function testCreateStreamSession(): void
+    {
+        $peer = new NativeIpcPeer();
+        $write = fopen('php://memory', 'r+');
+        $read1 = fopen('php://memory', 'r+');
+        $read2 = fopen('php://memory', 'r+');
+
+        $session = $peer->createStreamSession($write, $read1, $read2);
+
+        $this->assertInstanceOf(IpcSession::class, $session);
+        $transport = $session->getTransport();
+        $this->assertInstanceOf(StreamMessageTransport::class, $transport);
+        $this->assertCount(2, $transport->getReadStreams());
+    }
+
+    public function testCreateStdioSession(): void
+    {
+        $peer = new NativeIpcPeer();
+        $session = $peer->createStdioSession();
+
+        $this->assertInstanceOf(IpcSession::class, $session);
+        $this->assertInstanceOf(StreamMessageTransport::class, $session->getTransport());
+    }
+
+    public function testCreateCommandSession(): void
+    {
+        $peer = new NativeIpcPeer();
+        $session = $peer->createCommandSession('php -r ""', []);
+
+        $this->assertInstanceOf(IpcSession::class, $session);
+        $transport = $session->getTransport();
+        $this->assertInstanceOf(StreamMessageTransport::class, $transport);
+        $this->assertCount(2, $transport->getReadStreams());
     }
 }

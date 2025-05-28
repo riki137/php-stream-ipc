@@ -32,4 +32,21 @@ final class JsonMessageSerializerTest extends TestCase
         $this->assertInstanceOf(LogMessage::class, $decoded);
         $this->assertSame('error', $decoded->level);
     }
+
+    public function testInvalidJsonProducesLogMessage(): void
+    {
+        $serializer = new JsonMessageSerializer();
+        $decoded = $serializer->deserialize('{invalid json');
+        $this->assertInstanceOf(LogMessage::class, $decoded);
+        $this->assertSame('{invalid json', $decoded->message);
+    }
+
+    public function testDeserializedObjectNotImplementingMessage(): void
+    {
+        $serializer = new JsonMessageSerializer();
+        $objData = json_encode(['__class' => \stdClass::class]);
+        $decoded = $serializer->deserialize($objData);
+        $this->assertInstanceOf(LogMessage::class, $decoded);
+        $this->assertSame('error', $decoded->level);
+    }
 }
