@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Serialization;
+namespace StreamIpc\Serialization;
 
 use JsonException;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 use ReflectionClass;
 use Throwable;
 use function class_exists;

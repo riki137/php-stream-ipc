@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Tests\Integration;
+namespace StreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\SymfonyIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\SymfonyIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 use Symfony\Component\Process\Process;
 
 final class SymfonyProcessMultiProcessNotificationIntegrationTest extends TestCase
@@ -30,10 +30,10 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
 
-$peer    = new StreamIpcPeer();
+$peer    = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 $session->notify(new LogMessage('p1_1', 'info'));
@@ -52,10 +52,10 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
 
-$peer    = new StreamIpcPeer();
+$peer    = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 usleep(50_000);

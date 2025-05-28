@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Transport;
+namespace StreamIpc\Transport;
 
 use LogicException;
-use PhpStreamIpc\Message\Message;
-use PhpStreamIpc\Serialization\MessageSerializer;
-use PhpStreamIpc\Transport\FrameCodec;
+use StreamIpc\Message\Message;
+use StreamIpc\Serialization\MessageSerializer;
+use StreamIpc\Transport\FrameCodec;
 
 /**
  * FramedStreamMessageTransport implements the MessageTransport interface for stream-based IPC

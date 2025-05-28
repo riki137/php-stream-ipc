@@ -1,15 +1,15 @@
 <?php
 declare(strict_types=1);
 
-namespace PhpStreamIpc;
+namespace StreamIpc;
 
-use PhpStreamIpc\Transport\StreamMessageTransport;
+use StreamIpc\Transport\StreamMessageTransport;
 use RuntimeException;
 
 /**
  * IPC peer implementation that works with standard PHP stream resources.
  */
-final class StreamIpcPeer extends IpcPeer
+final class NativeIpcPeer extends IpcPeer
 {
     /**
      * Create a session using the given write stream and one or two read streams.

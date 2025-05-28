@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Transport;
+namespace StreamIpc\Transport;
 
-use PhpStreamIpc\Message\Message;
+use StreamIpc\Message\Message;
 
 /**
  * MessageTransport interface defines a contract for sending and receiving messages in a stream-based IPC system.

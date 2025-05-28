@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Message;
+namespace StreamIpc\Message;
 
-use PhpStreamIpc\Message\Message;
+use StreamIpc\Message\Message;
 
 /**
  * A simple message structure for transporting log entries or error reports via IPC.

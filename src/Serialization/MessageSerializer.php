@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Serialization;
+namespace StreamIpc\Serialization;
 
-use PhpStreamIpc\Message\Message;
+use StreamIpc\Message\Message;
 
 /**
  * Serializes and deserializes {@see Message} objects to and from string payloads for Inter-Process Communication (IPC).

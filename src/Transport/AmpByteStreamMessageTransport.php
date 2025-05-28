@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Transport;
+namespace StreamIpc\Transport;
 
 use Amp\ByteStream\ReadableResourceStream;
 use Amp\ByteStream\WritableResourceStream;
-use PhpStreamIpc\Message\Message;
-use PhpStreamIpc\Serialization\MessageSerializer;
+use StreamIpc\Message\Message;
+use StreamIpc\Serialization\MessageSerializer;
 use function is_resource;
 
 /**

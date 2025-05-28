@@ -1,13 +1,13 @@
 <?php
-namespace PhpStreamIpc\Tests\Unit;
+namespace StreamIpc\Tests\Unit;
 
 use Amp\ByteStream\ReadableResourceStream;
 use Amp\ByteStream\WritableResourceStream;
-use PhpStreamIpc\AmphpIpcPeer;
-use PhpStreamIpc\Serialization\NativeMessageSerializer;
-use PhpStreamIpc\Tests\Fixtures\SimpleMessage;
-use PhpStreamIpc\Transport\AmpByteStreamMessageTransport;
-use PhpStreamIpc\Transport\FrameCodec;
+use StreamIpc\AmphpIpcPeer;
+use StreamIpc\Serialization\NativeMessageSerializer;
+use StreamIpc\Tests\Fixtures\SimpleMessage;
+use StreamIpc\Transport\AmpByteStreamMessageTransport;
+use StreamIpc\Transport\FrameCodec;
 use PHPUnit\Framework\TestCase;
 
 final class AmpByteStreamMessageTransportTest extends TestCase

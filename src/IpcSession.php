@@ -1,15 +1,15 @@
 <?php
 declare(strict_types=1);
 
-namespace PhpStreamIpc;
+namespace StreamIpc;
 
-use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
-use PhpStreamIpc\Envelope\RequestEnvelope;
-use PhpStreamIpc\Envelope\ResponseEnvelope;
-use PhpStreamIpc\Envelope\ResponsePromise;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
-use PhpStreamIpc\Transport\MessageTransport;
+use StreamIpc\Envelope\Id\RequestIdGenerator;
+use StreamIpc\Envelope\RequestEnvelope;
+use StreamIpc\Envelope\ResponseEnvelope;
+use StreamIpc\Envelope\ResponsePromise;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
+use StreamIpc\Transport\MessageTransport;
 use Throwable;
 
 /**

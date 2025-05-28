@@ -1,19 +1,19 @@
 {
-    "name": "riki137/php-stream-ipc",
+    "name": "riki137/stream-ipc",
     "description": "Inter-Process Communication (IPC) over streams, pipes, and stdio with built-in request-response correlation, message framing, and serialization.",
     "type": "library",
     "license": "MIT",
     "keywords": ["php", "ipc", "stream", "stdio", "inter-process-communication", "fast", "async"],
     "autoload": {
         "psr-4": {
-            "PhpStreamIpc\\": "src/"
+            "StreamIpc\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "PhpStreamIpc\\Tests\\Integration\\": "tests/Integration/",
-            "PhpStreamIpc\\Tests\\Fixtures\\": "tests/Fixtures/",
-            "PhpStreamIpc\\Tests\\Unit\\": "tests/Unit/"
+            "StreamIpc\\Tests\\Integration\\": "tests/Integration/",
+            "StreamIpc\\Tests\\Fixtures\\": "tests/Fixtures/",
+            "StreamIpc\\Tests\\Unit\\": "tests/Unit/"
         }
     },
     "authors": [

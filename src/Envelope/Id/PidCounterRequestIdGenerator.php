@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Envelope\Id;
+namespace StreamIpc\Envelope\Id;
 
 /**
  * Generates unique request IDs based on the current process ID (PID) and a static incrementing counter.

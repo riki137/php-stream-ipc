@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace PhpStreamIpc;
+namespace StreamIpc;
 
-use PhpStreamIpc\Envelope\Id\PidCounterRequestIdGenerator;
-use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
-use PhpStreamIpc\Serialization\MessageSerializer;
-use PhpStreamIpc\Serialization\NativeMessageSerializer;
-use PhpStreamIpc\Transport\MessageTransport;
+use StreamIpc\Envelope\Id\PidCounterRequestIdGenerator;
+use StreamIpc\Envelope\Id\RequestIdGenerator;
+use StreamIpc\Serialization\MessageSerializer;
+use StreamIpc\Serialization\NativeMessageSerializer;
+use StreamIpc\Transport\MessageTransport;
 
 /**
  * Base class for IpcPeer variants bound to a specific transport implementation.

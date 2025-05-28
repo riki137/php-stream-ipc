@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Serialization;
+namespace StreamIpc\Serialization;
 
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 use Throwable;
 
 /**

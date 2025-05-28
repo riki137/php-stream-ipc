@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Tests\Integration;
+namespace StreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
 final class WarningsNotificationsInterleavedIntegrationTest extends TestCase
 {
@@ -29,13 +29,13 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
 
 ini_set('display_errors', 'stderr');
 error_reporting(E_ALL);
 
-$peer    = new StreamIpcPeer();
+$peer    = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 trigger_error('warn1', E_USER_WARNING);
@@ -72,7 +72,7 @@ PHP;
 
         [$stdin, $stdout, $stderr] = $pipes;
 
-        $peer    = new StreamIpcPeer();
+        $peer    = new NativeIpcPeer();
         // listen to both STDOUT and STDERR so we see framed msgs *and* raw warnings
         $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 

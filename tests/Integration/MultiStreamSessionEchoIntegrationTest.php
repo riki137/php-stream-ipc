@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Tests\Integration;
+namespace StreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
 
 final class MultiStreamSessionEchoIntegrationTest extends TestCase
 {
@@ -29,10 +29,10 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\Message;
 
-$peer    = new StreamIpcPeer();
+$peer    = new NativeIpcPeer();
 // write to STDERR (fd 2), read from STDIN (fd 0)
 $session = $peer->createStreamSession(STDERR, STDIN);
 
@@ -66,7 +66,7 @@ PHP;
 
         [$stdin, $stdout, $stderr] = $pipes;
 
-        $peer    = new StreamIpcPeer();
+        $peer    = new NativeIpcPeer();
         // parent reads from both $stdout and $stderr
         $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 

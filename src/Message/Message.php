@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Message;
+namespace StreamIpc\Message;
 
 /**
  * A marker interface indicating that an object can be transmitted as a message over the IPC system.

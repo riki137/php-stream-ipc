@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Envelope\Id;
+namespace StreamIpc\Envelope\Id;
 
 /**
  * Defines the contract for generating unique string identifiers.

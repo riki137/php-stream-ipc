@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace PhpStreamIpc;
+namespace StreamIpc;
 
 use Amp\ByteStream\ReadableResourceStream;
 use Amp\ByteStream\WritableResourceStream;
 use Amp\DeferredFuture;
-use PhpStreamIpc\Transport\AmpByteStreamMessageTransport;
+use StreamIpc\Transport\AmpByteStreamMessageTransport;
 use Revolt\EventLoop;
 use function Amp\Future\awaitFirst;
 use function is_resource;

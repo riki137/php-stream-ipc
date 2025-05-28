@@ -1,7 +1,7 @@
 <?php
-namespace PhpStreamIpc\Tests\Unit;
+namespace StreamIpc\Tests\Unit;
 
-use PhpStreamIpc\Envelope\Id\PidCounterRequestIdGenerator;
+use StreamIpc\Envelope\Id\PidCounterRequestIdGenerator;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 

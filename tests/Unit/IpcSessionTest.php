@@ -1,17 +1,17 @@
 <?php
-namespace PhpStreamIpc\Tests\Unit;
+namespace StreamIpc\Tests\Unit;
 
-use PhpStreamIpc\IpcPeer;
-use PhpStreamIpc\Tests\Fixtures\FakeTransport;
-use PhpStreamIpc\Tests\Fixtures\SimpleMessage;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Envelope\RequestEnvelope;
-use PhpStreamIpc\Envelope\ResponseEnvelope;
+use StreamIpc\IpcPeer;
+use StreamIpc\Tests\Fixtures\FakeTransport;
+use StreamIpc\Tests\Fixtures\SimpleMessage;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Envelope\RequestEnvelope;
+use StreamIpc\Envelope\ResponseEnvelope;
 use PHPUnit\Framework\TestCase;
 
 class TestPeer extends IpcPeer
 {
-    public function createFakeSession(FakeTransport $transport): \PhpStreamIpc\IpcSession
+    public function createFakeSession(FakeTransport $transport): \StreamIpc\IpcSession
     {
         return $this->createSession($transport);
     }

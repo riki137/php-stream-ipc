@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Tests\Integration;
+namespace StreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
 final class ComplexMultiProcessIntegrationTest extends TestCase
 {
@@ -33,11 +33,11 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
 
 // child #%d: two notifications, then one request
-$peer    = new StreamIpcPeer();
+$peer    = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 // first notification
@@ -80,7 +80,7 @@ PHP;
 
     public function testMasterHandlesFiveChildren(): void
     {
-        $peer     = new StreamIpcPeer();
+        $peer     = new NativeIpcPeer();
         $procs    = [];
         $sessions = [];
 

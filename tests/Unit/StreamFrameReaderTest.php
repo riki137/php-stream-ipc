@@ -1,11 +1,11 @@
 <?php
-namespace PhpStreamIpc\Tests\Unit;
+namespace StreamIpc\Tests\Unit;
 
-use PhpStreamIpc\Transport\StreamFrameReader;
-use PhpStreamIpc\Transport\FrameCodec;
-use PhpStreamIpc\Serialization\NativeMessageSerializer;
-use PhpStreamIpc\Tests\Fixtures\SimpleMessage;
-use PhpStreamIpc\Message\LogMessage;
+use StreamIpc\Transport\StreamFrameReader;
+use StreamIpc\Transport\FrameCodec;
+use StreamIpc\Serialization\NativeMessageSerializer;
+use StreamIpc\Tests\Fixtures\SimpleMessage;
+use StreamIpc\Message\LogMessage;
 use PHPUnit\Framework\TestCase;
 
 final class StreamFrameReaderTest extends TestCase

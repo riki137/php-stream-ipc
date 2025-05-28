@@ -1,10 +1,10 @@
 <?php
-namespace PhpStreamIpc\Tests\Unit;
+namespace StreamIpc\Tests\Unit;
 
-use PhpStreamIpc\Serialization\JsonMessageSerializer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Tests\Fixtures\SimpleMessage;
-use PhpStreamIpc\Tests\Fixtures\ComplexMessage;
+use StreamIpc\Serialization\JsonMessageSerializer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Tests\Fixtures\SimpleMessage;
+use StreamIpc\Tests\Fixtures\ComplexMessage;
 use PHPUnit\Framework\TestCase;
 
 final class JsonMessageSerializerTest extends TestCase

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Transport;
+namespace StreamIpc\Transport;
 
 use RuntimeException;
 use Throwable;

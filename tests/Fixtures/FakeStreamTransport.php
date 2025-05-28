@@ -1,9 +1,9 @@
 <?php
-namespace PhpStreamIpc\Tests\Fixtures;
+namespace StreamIpc\Tests\Fixtures;
 
-use PhpStreamIpc\Transport\MessageTransport;
-use PhpStreamIpc\Message\Message;
-use PhpStreamIpc\IpcSession;
+use StreamIpc\Transport\MessageTransport;
+use StreamIpc\Message\Message;
+use StreamIpc\IpcSession;
 
 final class FakeStreamTransport implements MessageTransport
 {

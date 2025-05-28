@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Envelope;
+namespace StreamIpc\Envelope;
 
-use PhpStreamIpc\Message\Message;
+use StreamIpc\Message\Message;
 
 /**
  * Represents a request message wrapped with a unique identifier.

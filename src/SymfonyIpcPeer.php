@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-namespace PhpStreamIpc;
+namespace StreamIpc;
 
-use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
-use PhpStreamIpc\Serialization\MessageSerializer;
-use PhpStreamIpc\Transport\SymfonyProcessMessageTransport;
+use StreamIpc\Envelope\Id\RequestIdGenerator;
+use StreamIpc\Serialization\MessageSerializer;
+use StreamIpc\Transport\SymfonyProcessMessageTransport;
 use Symfony\Component\Process\Process;
 
 /**

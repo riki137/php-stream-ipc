@@ -1,9 +1,9 @@
 <?php
-namespace PhpStreamIpc\Tests\Unit;
+namespace StreamIpc\Tests\Unit;
 
-use PhpStreamIpc\IpcPeer;
-use PhpStreamIpc\Tests\Fixtures\FakeStreamTransport;
-use PhpStreamIpc\IpcSession;
+use StreamIpc\IpcPeer;
+use StreamIpc\Tests\Fixtures\FakeStreamTransport;
+use StreamIpc\IpcSession;
 use PHPUnit\Framework\TestCase;
 
 class TestStreamPeer extends IpcPeer
@@ -24,7 +24,7 @@ class TestStreamPeer extends IpcPeer
     }
 }
 
-final class StreamIpcPeerTest extends TestCase
+final class NativeIpcPeerTest extends TestCase
 {
     public function testTickForLoopsUntilTimeout(): void
     {

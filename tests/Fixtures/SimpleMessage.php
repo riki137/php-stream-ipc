@@ -1,7 +1,7 @@
 <?php
-namespace PhpStreamIpc\Tests\Fixtures;
+namespace StreamIpc\Tests\Fixtures;
 
-use PhpStreamIpc\Message\Message;
+use StreamIpc\Message\Message;
 
 final readonly class SimpleMessage implements Message
 {

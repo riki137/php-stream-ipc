@@ -1,9 +1,9 @@
 <?php
-namespace PhpStreamIpc\Tests\Unit;
+namespace StreamIpc\Tests\Unit;
 
-use PhpStreamIpc\Serialization\NativeMessageSerializer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Tests\Fixtures\SimpleMessage;
+use StreamIpc\Serialization\NativeMessageSerializer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Tests\Fixtures\SimpleMessage;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 

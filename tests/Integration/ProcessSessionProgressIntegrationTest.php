@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Tests\Integration;
+namespace StreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
 final class ProcessSessionProgressIntegrationTest extends TestCase
 {
@@ -30,11 +30,11 @@ declare(strict_types=1);
 
 require %s;
 
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
-$peer    = new StreamIpcPeer();
+$peer    = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 $session->onRequest(function(Message $msg, $session): Message {
@@ -73,7 +73,7 @@ PHP;
 
         [$stdin, $stdout, $stderr] = $pipes;
 
-        $peer    = new StreamIpcPeer();
+        $peer    = new NativeIpcPeer();
         $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
         $progress = [];

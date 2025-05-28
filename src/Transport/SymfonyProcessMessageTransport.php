@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Transport;
+namespace StreamIpc\Transport;
 
 use Closure;
-use PhpStreamIpc\Message\Message;
-use PhpStreamIpc\Serialization\MessageSerializer;
+use StreamIpc\Message\Message;
+use StreamIpc\Serialization\MessageSerializer;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PhpStreamIpc\Envelope;
+namespace StreamIpc\Envelope;
 
-use PhpStreamIpc\IpcPeer;
-use PhpStreamIpc\IpcSession;
-use PhpStreamIpc\Message\Message;
-use PhpStreamIpc\Transport\TimeoutException;
+use StreamIpc\IpcPeer;
+use StreamIpc\IpcSession;
+use StreamIpc\Message\Message;
+use StreamIpc\Transport\TimeoutException;
 
 /**
  * Represents a pending IPC message that is expected to receive a response.

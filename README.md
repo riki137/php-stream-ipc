@@ -1,4 +1,4 @@
-# PHP Stream IPC: Lightweight Inter-Process Communication for PHP
+# 🚀 **PHP Stream IPC**: Simple, Reliable Inter-Process Communication in Pure PHP
 
 [![Packagist Version](https://img.shields.io/packagist/v/riki137/php-stream-ipc.svg)](https://packagist.org/packages/riki137/php-stream-ipc)
 [![Code Coverage](https://codecov.io/gh/riki137/php-stream-ipc/branch/main/graph/badge.svg)](https://codecov.io/gh/riki137/php-stream-ipc)
@@ -7,23 +7,36 @@
 [![PHP Version](https://img.shields.io/badge/php-8.2%2B-8892BF.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-**PHP Stream IPC** provides a fast, reliable, and easy-to-use Inter-Process Communication (IPC) mechanism for PHP applications. It's ideal for background jobs, multi-process applications, worker management, and seamless PHP script communication via streams, pipes, sockets, and stdio.
+PHP Stream IPC is a **lightweight, zero-dependency** PHP library designed for robust **IPC** (inter-process communication) **through streams, pipes, sockets, and standard I/O**. Whether you're managing background jobs, orchestrating parallel tasks, or simply need efficient communication between PHP processes, PHP Stream IPC makes it straightforward, reliable, and fast.
+
+Forget complicated setups or bloated frameworks—this library is pure PHP, requiring **no external dependencies**, and seamlessly integrates with native PHP streams, Symfony's popular `Process` component or AMPHP's ByteStream component (or your own adapter). It handles everything from framing messages to correlating requests and responses, enabling your applications to effortlessly communicate in real time.
+
+### 🔥 **Why choose PHP Stream IPC?**
+
+* **Zero Dependencies**: Lightweight, pure PHP—installs fast and clean.
+* **Reliable Messaging**: Automatic message framing ensures data integrity.
+* **Performance-Focused**: Built for speed and efficiency. You can send hundreds of messages per second.
+* **Built-in Request-Response Handling**: Easily correlate requests with their responses, simplifying async communication.
+* **Flexible Serialization**: Fast Native PHP serialization by default, with JSON support ready out of the box.
+* **Easy Integration with Symfony/AMPHP**: Fits perfectly into your existing workflow.
+* **Real-time Notifications and Updates**: Effortlessly handle real-time progress updates and event-driven messaging.
+* **Error and Timeout Management**: Robust exception handling, graceful stream closure management, and built-in timeout control keep your processes resilient.
+* **Extendable by Design**: Simple interfaces and clearly defined contracts mean you can easily adapt or extend functionality for your specific needs.
+
+Whether you're building scalable PHP services, handling parallel background processing, or connecting multiple PHP scripts reliably, PHP Stream IPC gives you the control and simplicity you've been looking for.
 
 ---
 
-## 🚀 Key Features
+## 📦 Quick Installation
 
-* **Zero Dependencies:** No external dependencies, pure PHP.
-* **Easy Integration:** Simple API with minimal configuration.
-* **Reliable Framing:** Ensures message integrity with length-prefixed frames and magic headers.
-* **Request-Response Pattern:** Correlate requests and responses automatically.
-* **Multiple Transports:** Supports stdio, pipes, sockets, and Symfony processes.
-* **Flexible Serialization:** Choose native PHP serialization or JSON-based serialization.
-* **Event-Driven Architecture:** Register custom handlers for messages and requests.
-* **Timeout Handling:** Built-in request timeouts and exception management.
-* **Robust Error Handling:** Graceful stream closures and exception logging.
+Install with Composer in seconds:
+
+```bash
+composer require riki137/php-stream-ipc
+```
 
 ---
+
 
 ## 📦 Quick Installation
 
@@ -42,14 +55,14 @@ composer require riki137/php-stream-ipc
 #### Parent (`parent.php`):
 
 ```php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
 
 $process = proc_open('php child.php', [
     ['pipe', 'r'], ['pipe', 'w'], ['pipe', 'w']
 ], $pipes);
 
-$peer = new StreamIpcPeer();
+$peer = new NativeIpcPeer();
 $session = $peer->createStreamSession($pipes[0], $pipes[1], $pipes[2]);
 
 $response = $session->request(new LogMessage('Ping!'))->await();
@@ -61,11 +74,11 @@ proc_close($process);
 #### Child (`child.php`):
 
 ```php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
-$peer = new StreamIpcPeer();
+$peer = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 $session->onRequest(fn(Message $msg) => new LogMessage("Pong!"));
@@ -113,7 +126,7 @@ $session->onRequest(function (Message $msg): ?Message {
 Handle request timeouts gracefully:
 
 ```php
-use PhpStreamIpc\Transport\TimeoutException;
+use StreamIpc\Transport\TimeoutException;
 
 try {
     $session->request(new LogMessage("Quick task"), 3.0)->await();
@@ -127,14 +140,14 @@ try {
 #### Custom Serialization (JSON):
 
 ```php
-use PhpStreamIpc\Serialization\JsonMessageSerializer;
-$peer = new StreamIpcPeer(new JsonMessageSerializer());
+use StreamIpc\Serialization\JsonMessageSerializer;
+$peer = new NativeIpcPeer(new JsonMessageSerializer());
 ```
 
 #### Custom Request ID Generation (UUID):
 
 ```php
-use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
+use StreamIpc\Envelope\Id\RequestIdGenerator;
 
 class UuidRequestIdGenerator implements RequestIdGenerator {
     public function generate(): string {
@@ -142,7 +155,7 @@ class UuidRequestIdGenerator implements RequestIdGenerator {
     }
 }
 
-$peer = new StreamIpcPeer(null, new UuidRequestIdGenerator());
+$peer = new NativeIpcPeer(null, new UuidRequestIdGenerator());
 ```
 
 ---
@@ -222,11 +235,11 @@ composer require symfony/process
 
 ```php
 // child.php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
-$peer = new StreamIpcPeer();
+$peer = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 // Handle requests from parent
@@ -249,10 +262,10 @@ Create a background process that regularly sends status updates:
 
 ```php
 // backgroundWorker.php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
 
- $peer = new StreamIpcPeer();
+ $peer = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 // Simulate background work
@@ -270,9 +283,9 @@ $session->notify(new LogMessage("Task completed successfully", "success"));
 
 ```php
 // monitor.php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
 $descriptors = [
     0 => ['pipe', 'r'],
@@ -282,7 +295,7 @@ $descriptors = [
 $process = proc_open('php backgroundWorker.php', $descriptors, $pipes);
 [$stdin, $stdout, $stderr] = $pipes;
 
- $peer = new StreamIpcPeer();
+ $peer = new NativeIpcPeer();
 $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
 // Listen for status updates
@@ -304,11 +317,11 @@ proc_close($process);
 
 ```php
 // server.php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
- $peer = new StreamIpcPeer();
+ $peer = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 $session->onRequest(function(Message $msg, $session): Message {
@@ -330,15 +343,15 @@ $peer->tick();
 
 ```php
 // client.php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
 $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
 $process = proc_open('php server.php', $descriptors, $pipes);
 [$stdin, $stdout, $stderr] = $pipes;
 
- $peer = new StreamIpcPeer();
+ $peer = new NativeIpcPeer();
 $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
 // Listen for progress notifications
@@ -360,12 +373,12 @@ proc_close($process);
 
 ```php
 // manager.php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
 // Create IPC peer
- $peer = new StreamIpcPeer();
+ $peer = new NativeIpcPeer();
 $sessions = [];
 $workers = [];
 
@@ -402,11 +415,11 @@ foreach ($workers as $process) {
 
 ```php
 // worker.php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
-use PhpStreamIpc\Message\Message;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\Message;
 
- $peer = new StreamIpcPeer();
+ $peer = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 // Get worker ID from command line
@@ -435,7 +448,7 @@ Define custom message types by implementing the `Message` interface:
 // TaskMessage.php
 namespace App\Messages;
 
-use PhpStreamIpc\Message\Message;
+use StreamIpc\Message\Message;
 
 final readonly class TaskMessage implements Message
 {
@@ -449,10 +462,10 @@ final readonly class TaskMessage implements Message
 
 ```php
 // usage.php
-use PhpStreamIpc\StreamIpcPeer;
+use StreamIpc\NativeIpcPeer;
 use App\Messages\TaskMessage;
 
- $peer = new StreamIpcPeer();
+ $peer = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 // Send a custom task message
@@ -470,17 +483,17 @@ $response = $session->request($task)->await();
 
 ```php
 // client.php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Message\LogMessage;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Message\LogMessage;
 
- $peer = new StreamIpcPeer();
+ $peer = new NativeIpcPeer();
 $session = $peer->createStdioSession();
 
 try {
     // Set a short timeout (2 seconds)
     $response = $session->request(new LogMessage("Fast request"), 2.0)->await();
     echo "Received response: {$response->message}\n";
-} catch (\PhpStreamIpc\Transport\TimeoutException $e) {
+} catch (\StreamIpc\Transport\TimeoutException $e) {
     echo "Request timed out: {$e->getMessage()}\n";
     // Handle timeout situation
 }
@@ -516,11 +529,11 @@ $session->onRequest(function(Message $msg, IpcSession $session): ?Message {
 #### Custom Serialization
 
 ```php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Serialization\JsonMessageSerializer;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Serialization\JsonMessageSerializer;
 
 // Create a peer with custom serializer
-$peer = new StreamIpcPeer(
+$peer = new NativeIpcPeer(
     new JsonMessageSerializer()
 );
 
@@ -530,8 +543,8 @@ $session = $peer->createStdioSession();
 #### Custom Request ID Generation
 
 ```php
-use PhpStreamIpc\StreamIpcPeer;
-use PhpStreamIpc\Envelope\Id\RequestIdGenerator;
+use StreamIpc\NativeIpcPeer;
+use StreamIpc\Envelope\Id\RequestIdGenerator;
 
 class UuidRequestIdGenerator implements RequestIdGenerator
 {
@@ -549,7 +562,7 @@ class UuidRequestIdGenerator implements RequestIdGenerator
 }
 
 // Create peer with custom ID generator
-$peer = new StreamIpcPeer(
+$peer = new NativeIpcPeer(
     null, // use default serializer
     new UuidRequestIdGenerator()
 );
