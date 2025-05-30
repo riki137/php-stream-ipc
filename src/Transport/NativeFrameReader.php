@@ -15,11 +15,8 @@ use function fread;
  * Handles partial reads and reassembles full message frames.
  * If invalid data or framing errors are encountered, it may return a LogMessage.
  */
-final class StreamFrameReader
+final class NativeFrameReader
 {
-    /** @var int The default maximum frame size in bytes (10MB). */
-    public const DEFAULT_MAX_FRAME = 10 * 1024 * 1024;
-
     private FrameCodec $codec;
 
     /**
@@ -37,7 +34,6 @@ final class StreamFrameReader
         MessageSerializer $serializer,
         ?int $maxFrame = null
     ) {
-        $maxFrame ??= self::DEFAULT_MAX_FRAME;
         $this->codec = new FrameCodec($serializer, $maxFrame);
     }
 

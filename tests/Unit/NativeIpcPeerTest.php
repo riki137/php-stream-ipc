@@ -5,7 +5,7 @@ use StreamIpc\IpcPeer;
 use StreamIpc\Tests\Fixtures\FakeStreamTransport;
 use StreamIpc\IpcSession;
 use StreamIpc\NativeIpcPeer;
-use StreamIpc\Transport\StreamMessageTransport;
+use StreamIpc\Transport\NativeMessageTransport;
 use PHPUnit\Framework\TestCase;
 
 class TestStreamPeer extends IpcPeer
@@ -65,7 +65,7 @@ final class NativeIpcPeerTest extends TestCase
 
         $this->assertInstanceOf(IpcSession::class, $session);
         $transport = $session->getTransport();
-        $this->assertInstanceOf(StreamMessageTransport::class, $transport);
+        $this->assertInstanceOf(NativeMessageTransport::class, $transport);
         $this->assertCount(2, $transport->getReadStreams());
     }
 
@@ -75,7 +75,7 @@ final class NativeIpcPeerTest extends TestCase
         $session = $peer->createStdioSession();
 
         $this->assertInstanceOf(IpcSession::class, $session);
-        $this->assertInstanceOf(StreamMessageTransport::class, $session->getTransport());
+        $this->assertInstanceOf(NativeMessageTransport::class, $session->getTransport());
     }
 
     public function testCreateCommandSession(): void
@@ -85,7 +85,7 @@ final class NativeIpcPeerTest extends TestCase
 
         $this->assertInstanceOf(IpcSession::class, $session);
         $transport = $session->getTransport();
-        $this->assertInstanceOf(StreamMessageTransport::class, $transport);
+        $this->assertInstanceOf(NativeMessageTransport::class, $transport);
         $this->assertCount(2, $transport->getReadStreams());
     }
 }

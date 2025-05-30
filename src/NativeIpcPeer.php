@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace StreamIpc;
 
-use StreamIpc\Transport\StreamMessageTransport;
+use StreamIpc\Transport\NativeMessageTransport;
 use RuntimeException;
 
 /**
@@ -25,7 +25,7 @@ final class NativeIpcPeer extends IpcPeer
             $reads[] = $read2;
         }
         return $this->createSession(
-            new StreamMessageTransport(
+            new NativeMessageTransport(
                 $write,
                 $reads,
                 $this->defaultSerializer
@@ -42,9 +42,9 @@ final class NativeIpcPeer extends IpcPeer
     }
 
     /**
-     * Register an existing {@see StreamMessageTransport} instance.
+     * Register an existing {@see NativeMessageTransport} instance.
      */
-    public function createSessionFromTransport(StreamMessageTransport $transport): IpcSession
+    public function createSessionFromTransport(NativeMessageTransport $transport): IpcSession
     {
         return $this->createSession($transport);
     }
@@ -94,7 +94,7 @@ final class NativeIpcPeer extends IpcPeer
 
         foreach ($this->sessions as $session) {
             $transport = $session->getTransport();
-            if (!$transport instanceof StreamMessageTransport) {
+            if (!$transport instanceof NativeMessageTransport) {
                 continue;
             }
             foreach ($transport->getReadStreams() as $stream) {

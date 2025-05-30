@@ -1,14 +1,14 @@
 <?php
 namespace StreamIpc\Tests\Unit;
 
-use StreamIpc\Transport\StreamFrameReader;
+use StreamIpc\Transport\NativeFrameReader;
 use StreamIpc\Transport\FrameCodec;
 use StreamIpc\Serialization\NativeMessageSerializer;
 use StreamIpc\Tests\Fixtures\SimpleMessage;
 use StreamIpc\Message\LogMessage;
 use PHPUnit\Framework\TestCase;
 
-final class StreamFrameReaderTest extends TestCase
+final class NativeFrameReaderTest extends TestCase
 {
     private function createStream(string $data)
     {
@@ -28,7 +28,7 @@ final class StreamFrameReaderTest extends TestCase
     {
         $ser = new NativeMessageSerializer();
         $stream = $this->createStream($this->frameFor(new SimpleMessage('hi'), $ser));
-        $reader = new StreamFrameReader($stream, $ser, 1024);
+        $reader = new NativeFrameReader($stream, $ser, 1024);
         $msgs = $reader->readFrameSync();
         $this->assertCount(1, $msgs);
         $this->assertInstanceOf(SimpleMessage::class, $msgs[0]);
@@ -40,7 +40,7 @@ final class StreamFrameReaderTest extends TestCase
         $ser = new NativeMessageSerializer();
         $frame = $this->frameFor(new SimpleMessage('ok'), $ser);
         $stream = $this->createStream('junk' . $frame);
-        $reader = new StreamFrameReader($stream, $ser, 1024);
+        $reader = new NativeFrameReader($stream, $ser, 1024);
         $msgs = $reader->readFrameSync();
         $this->assertCount(2, $msgs);
         $this->assertInstanceOf(LogMessage::class, $msgs[0]);
@@ -54,7 +54,7 @@ final class StreamFrameReaderTest extends TestCase
         $payload = 'not serialized';
         $frame = FrameCodec::MAGIC . pack('N', strlen($payload)) . $payload;
         $stream = $this->createStream($frame);
-        $reader = new StreamFrameReader($stream, $ser, 1024);
+        $reader = new NativeFrameReader($stream, $ser, 1024);
         $msgs = $reader->readFrameSync();
         $this->assertCount(1, $msgs);
         $this->assertInstanceOf(LogMessage::class, $msgs[0]);

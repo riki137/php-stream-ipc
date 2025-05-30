@@ -16,14 +16,14 @@ use StreamIpc\Transport\FrameCodec;
  *
  * This transport can read from multiple input streams concurrently.
  */
-final class StreamMessageTransport implements MessageTransport
+final class NativeMessageTransport implements MessageTransport
 {
     /** @var resource */
     private $writeStream;
 
     private FrameCodec $codec;
 
-    /** @var StreamFrameReader[] indexed by (int)$stream */
+    /** @var NativeFrameReader[] indexed by (int)$stream */
     private array $readers = [];
 
     /**
@@ -43,7 +43,7 @@ final class StreamMessageTransport implements MessageTransport
         $this->writeStream = $writeStream;
         $this->codec = new FrameCodec($serializer, $frameLimit);
         foreach ($readStreams as $stream) {
-            $this->readers[(int)$stream] = new StreamFrameReader($stream, $serializer, $frameLimit);
+            $this->readers[(int)$stream] = new NativeFrameReader($stream, $serializer, $frameLimit);
         }
     }
 
