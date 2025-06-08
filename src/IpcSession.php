@@ -10,6 +10,7 @@ use StreamIpc\Envelope\ResponsePromise;
 use StreamIpc\Message\LogMessage;
 use StreamIpc\Message\Message;
 use StreamIpc\Transport\MessageTransport;
+use StreamIpc\Transport\StreamClosedException;
 use Throwable;
 
 /**
@@ -72,9 +73,13 @@ final class IpcSession
                     }
                 }
             } catch (Throwable $e) {
-                $this->transport->send(
-                    new LogMessage('Error in dispatch: ' . $e->getMessage(), 'error')
-                );
+                try {
+                    $this->transport->send(
+                        new LogMessage('Error in dispatch: ' . $e->getMessage(), 'error')
+                    );
+                } catch (StreamClosedException) {
+                    throw $e;
+                }
             }
         } elseif ($envelope instanceof ResponseEnvelope) {
             $this->responses[$envelope->id] = $envelope->response;
