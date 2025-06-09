@@ -72,6 +72,7 @@ final class IpcSession
                         break;
                     }
                 }
+            } catch (StreamClosedException) {
             } catch (Throwable $e) {
                 try {
                     $this->transport->send(

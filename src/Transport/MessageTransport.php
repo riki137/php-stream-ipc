@@ -16,6 +16,7 @@ interface MessageTransport
 {
     /**
      * Send a {@see Message} over the underlying transport.
+     * @throws StreamClosedException
      */
     public function send(Message $message): void;
 }
