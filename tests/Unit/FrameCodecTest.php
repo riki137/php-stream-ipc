@@ -52,11 +52,14 @@ final class FrameCodecTest extends TestCase
 
     public function testSingleHugeFrame(): void
     {
-        $codec = $this->makeCodec(15 * 1024 * 1024);   // 15 MB limit
-        $payload = str_repeat('💾', 5_000_000);          // ≈10 MB UTF-8
-        $frame = $codec->pack(new SimpleMessage($payload));
+        $limit   = 15 * 1024 * 1024;                    // 15 MB limit
+        $codec   = $this->makeCodec($limit);
 
-        $msgs = $codec->feed($frame);
+        // Generate a payload with exactly 10 million bytes (10 MB)
+        $payload = str_repeat('A', 10_000_000);
+
+        $frame   = $codec->pack(new SimpleMessage($payload));
+        $msgs    = $codec->feed($frame);
 
         self::assertCount(1, $msgs);
         $this->assertSimple($msgs[0], $payload);
