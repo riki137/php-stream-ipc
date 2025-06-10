@@ -49,9 +49,13 @@ final class IpcSessionTest extends TestCase
         $transport = new FakeTransport();
         $session = $peer->createFakeSession($transport);
 
-        $resp = new ResponseEnvelope('id', new SimpleMessage('ok'));
+        $promise = $session->request(new SimpleMessage('req'));
+        $id = $transport->sent[0]->id;
+
+        $resp = new ResponseEnvelope($id, new SimpleMessage('ok'));
         $session->dispatch($resp);
-        $this->assertSame($resp->response, $session->popResponse('id'));
+        $this->assertSame($resp->response, $session->popResponse($id));
+        unset($promise);
     }
 
     public function testDispatchErrorFromHandlerSendsLogMessage(): void
@@ -163,5 +167,36 @@ final class IpcSessionTest extends TestCase
 
         $this->assertCount(1, $transport->sent);
         $this->assertSame($msg, $transport->sent[0]);
+    }
+
+    public function testPromiseDestructorRemovesStoredResponse(): void
+    {
+        $peer = new TestPeer();
+        $transport = new FakeTransport();
+        $session = $peer->createFakeSession($transport);
+
+        $promise = $session->request(new SimpleMessage('req'));
+        $id = $transport->sent[0]->id;
+
+        $session->dispatch(new ResponseEnvelope($id, new SimpleMessage('resp')));
+
+        unset($promise);
+
+        $this->assertNull($session->popResponse($id));
+    }
+
+    public function testPromiseDestroyedBeforeResponseDiscardsIt(): void
+    {
+        $peer = new TestPeer();
+        $transport = new FakeTransport();
+        $session = $peer->createFakeSession($transport);
+
+        $promise = $session->request(new SimpleMessage('req'));
+        $id = $transport->sent[0]->id;
+        unset($promise);
+
+        $session->dispatch(new ResponseEnvelope($id, new SimpleMessage('resp')));
+
+        $this->assertNull($session->popResponse($id));
     }
 }

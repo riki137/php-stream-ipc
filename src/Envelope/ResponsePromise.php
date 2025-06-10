@@ -35,6 +35,7 @@ final class ResponsePromise
         private readonly ?float $timeout
     ) {
         $this->start = microtime(true);
+        $this->session->registerPromise($this->id);
     }
 
     /**
@@ -63,6 +64,14 @@ final class ResponsePromise
             $this->response = $this->session->popResponse($this->id);
         }
 
-        return $this->response;
+        $resp = $this->response;
+        $this->session->cleanupPromise($this->id);
+
+        return $resp;
+    }
+
+    public function __destruct()
+    {
+        $this->session->cleanupPromise($this->id);
     }
 }

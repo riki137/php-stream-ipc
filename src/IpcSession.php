@@ -30,6 +30,9 @@ final class IpcSession
     /** @var array<string, Message> Pending responses, indexed by request ID */
     private array $responses = [];
 
+    /** @var array<string,bool> Active promises expecting a response */
+    private array $pending = [];
+
     /**
      * Constructs a new IpcSession.
      *
@@ -50,6 +53,18 @@ final class IpcSession
     public function getTransport(): MessageTransport
     {
         return $this->transport;
+    }
+
+    /** @internal */
+    public function registerPromise(string $id): void
+    {
+        $this->pending[$id] = true;
+    }
+
+    /** @internal */
+    public function cleanupPromise(string $id): void
+    {
+        unset($this->pending[$id], $this->responses[$id]);
     }
 
     /**
@@ -83,7 +98,9 @@ final class IpcSession
                 }
             }
         } elseif ($envelope instanceof ResponseEnvelope) {
-            $this->responses[$envelope->id] = $envelope->response;
+            if (isset($this->pending[$envelope->id])) {
+                $this->responses[$envelope->id] = $envelope->response;
+            }
         } else {
             $exception = null;
             try {
