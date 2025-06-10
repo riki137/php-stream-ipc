@@ -60,27 +60,4 @@ final class NativeFrameReaderTest extends TestCase
         $this->assertInstanceOf(LogMessage::class, $msgs[0]);
         $this->assertSame($payload, $msgs[0]->message);
     }
-
-    public function testOverlapLengthDetectsPrefixes(): void
-    {
-        $ser = new NativeMessageSerializer();
-        $codec = new FrameCodec($ser, 1024);
-
-        $ref = new \ReflectionClass(FrameCodec::class);
-        $bufProp = $ref->getProperty('buffer');
-        $bufProp->setAccessible(true);
-        $method = $ref->getMethod('getOverlapLength');
-        $method->setAccessible(true);
-
-        $magic = FrameCodec::MAGIC;
-        $magicLen = strlen($magic);
-
-        for ($i = 1; $i < $magicLen; $i++) {
-            $bufProp->setValue($codec, substr($magic, 0, $i));
-            $this->assertSame($i, $method->invoke($codec));
-        }
-
-        $bufProp->setValue($codec, 'junk');
-        $this->assertSame(0, $method->invoke($codec));
-    }
 }

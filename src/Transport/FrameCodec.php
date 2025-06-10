@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace StreamIpc\Transport;
@@ -10,94 +9,86 @@ use StreamIpc\Message\Message;
 use StreamIpc\Serialization\MessageSerializer;
 use Throwable;
 
-/**
- * Handles framing of messages using a magic header and length prefix.
- * Can encode {@see Message} objects to a framed binary string and
- * parse framed bytes from an arbitrary buffer without relying on stream
- * resources or `stream_select`.
- */
 final class FrameCodec
 {
-    /** Magic bytes indicating the start of a frame. */
-    public const MAGIC = "\xF3\x4A\x9D\xE2";
-
-    /** @var array<int,string> */
-    private static array $magicPrefixes = [];
+    public const MAGIC      = "\xF3\x4A\x9D\xE2";
+    private const MAGIC_LEN = 4;
+    private const LEN_LEN   = 4;
 
     private string $buffer = '';
+    private int    $scanPos = 0;
 
     public function __construct(
         private readonly MessageSerializer $serializer,
         private readonly ?int $maxFrame = null
-    ) {
-        self::initMagicPrefixes();
-    }
+    ) {}
 
-    /** Encode a message into a framed binary string. */
     public function pack(Message $message): string
     {
         $payload = $this->serializer->serialize($message);
         return self::MAGIC . pack('N', strlen($payload)) . $payload;
     }
 
-    /**
-     * Feed raw bytes into the decoder and return any complete messages.
-     *
-     * @return Message[]
-     */
+    /** @return Message[] */
     public function feed(string $chunk): array
     {
         if ($chunk !== '') {
             $this->buffer .= $chunk;
         }
 
-        $magicLen = strlen(self::MAGIC);
         $messages = [];
 
         while (true) {
-            $pos = strpos($this->buffer, self::MAGIC);
+            // ── 1. search for next MAGIC ───────────────────────────────────────────
+            $pos = strpos($this->buffer, self::MAGIC, $this->scanPos);
 
             if ($pos === false) {
-                if (strlen($this->buffer) > $magicLen) {
-                    $overlap = $this->getOverlapLength();
-                    if ($overlap > 0) {
-                        $messages[] = new LogMessage(substr($this->buffer, 0, -$overlap), 'error');
-                        $this->buffer = substr($this->buffer, -$overlap);
-                    } else {
-                        $messages[] = new LogMessage($this->buffer, 'error');
-                        $this->buffer = '';
-                    }
-                    continue;
+                // ---------- NO HEADER FOUND YET ----------
+                $overlap = $this->computeOverlap();
+                $junkLen = strlen($this->buffer) - $overlap;
+
+                if ($junkLen > 0) {
+                    $messages[] = new LogMessage(substr($this->buffer, 0, $junkLen), 'error');
+                    $this->buffer = substr($this->buffer, $junkLen); // keep only overlap
                 }
+                $this->scanPos = 0;
                 break;
             }
 
+            // ── 2. junk before header ──────────────────────────────────────────────
             if ($pos > 0) {
-                $junk = substr($this->buffer, 0, $pos);
+                $messages[] = new LogMessage(substr($this->buffer, 0, $pos), 'error');
                 $this->buffer = substr($this->buffer, $pos);
-                $messages[] = new LogMessage($junk, 'error');
-                continue;
+                $this->scanPos = 0;
             }
 
-            if (strlen($this->buffer) < 8) {
+            // ── 3. need at least header + length ───────────────────────────────────
+            if (strlen($this->buffer) < self::MAGIC_LEN + self::LEN_LEN) {
                 break;
             }
 
-            $unpacked = unpack('N', substr($this->buffer, 4, 4));
-            if ($unpacked === false) {
-                break;
-            }
-            $length = $unpacked[1];
+            // ── 4. parse 32-bit BE length fast ─────────────────────────────────────
+            $lenOffset = self::MAGIC_LEN;
+            $length = (ord($this->buffer[$lenOffset    ]) << 24)
+                | (ord($this->buffer[$lenOffset + 1]) << 16)
+                | (ord($this->buffer[$lenOffset + 2]) <<  8)
+                |  ord($this->buffer[$lenOffset + 3]);
+
             if ($this->maxFrame !== null && $length > $this->maxFrame) {
-                throw new RuntimeException('Frame length exceeds max frame size');
+                throw new RuntimeException("Frame length $length exceeds max {$this->maxFrame}");
             }
 
-            if (strlen($this->buffer) < 8 + $length) {
-                break;
+            $frameSize = self::MAGIC_LEN + self::LEN_LEN + $length;
+            if (strlen($this->buffer) < $frameSize) {
+                break; // wait for the rest of the frame
             }
 
-            $payload = substr($this->buffer, 8, $length);
-            $this->buffer = substr($this->buffer, 8 + $length);
+            // ── 5. extract payload & consume buffer ────────────────────────────────
+            $payload = substr($this->buffer,
+                self::MAGIC_LEN + self::LEN_LEN,
+                $length);
+            $this->buffer = substr($this->buffer, $frameSize);
+            $this->scanPos = 0;
 
             try {
                 $messages[] = $this->serializer->deserialize($payload);
@@ -109,41 +100,24 @@ final class FrameCodec
         return $messages;
     }
 
-    /**
-     * Returns true when partial data is buffered but no complete frame is available yet.
-     */
     public function hasBufferedData(): bool
     {
         return $this->buffer !== '';
     }
 
-    private static function initMagicPrefixes(): void
+    /** Longest suffix of buffer that matches the start of MAGIC (0-3 bytes). */
+    private function computeOverlap(): int
     {
-        if (self::$magicPrefixes !== []) {
-            return;
-        }
-        $magic = self::MAGIC;
-        $len = strlen($magic);
-        for ($i = $len - 1; $i >= 1; $i--) {
-            self::$magicPrefixes[$i] = substr($magic, 0, $i);
-        }
-    }
-
-    /**
-     * Only looks at the last up to (magicLen-1) bytes and returns how many of them
-     * match the start of MAGIC.
-     */
-    private function getOverlapLength(): int
-    {
-        $bufLen = strlen($this->buffer);
-        foreach (self::$magicPrefixes as $len => $prefix) {
-            if ($bufLen >= $len
-                && substr_compare($this->buffer, $prefix, $bufLen - $len, $len) === 0
-            ) {
-                return $len;
+        $max = min(strlen($this->buffer), self::MAGIC_LEN - 1);
+        for ($i = $max; $i > 0; $i--) {
+            if (strncmp($this->buffer, self::MAGIC, $i) === 0) {
+                // entire buffer *is* a prefix – keep it
+                return strlen($this->buffer);
+            }
+            if (substr_compare($this->buffer, substr(self::MAGIC, 0, $i), -$i, $i) === 0) {
+                return $i; // found matching suffix
             }
         }
-
         return 0;
     }
 }

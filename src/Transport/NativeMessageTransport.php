@@ -59,17 +59,17 @@ final class NativeMessageTransport implements MessageTransport
         $data = $this->codec->pack($message);
 
         // Clear any previous PHP error
-        if (function_exists('error_clear_last')) {
-            error_clear_last();
-        }
+        error_clear_last();
 
         // Suppress the warning and attempt to write
         $bytesWritten = @fwrite($this->writeStream, $data);
 
-        // Check for any "Broken pipe" error
-        $lastError = error_get_last();
-        if ($lastError !== null && stripos($lastError['message'], 'Broken pipe') !== false) {
-            throw new StreamClosedException('Broken pipe while writing to stream:' . $lastError['message']);
+        if ($bytesWritten < 1) {
+            // Check for any "Broken pipe" error
+            $lastError = error_get_last();
+            if ($lastError !== null && stripos($lastError['message'], 'Broken pipe') !== false) {
+                throw new StreamClosedException('Broken pipe while writing to stream:' . $lastError['message']);
+            }
         }
 
         if ($bytesWritten === false) {
