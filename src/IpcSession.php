@@ -91,7 +91,7 @@ final class IpcSession
             } catch (Throwable $e) {
                 try {
                     $this->transport->send(
-                        new LogMessage('Error in dispatch: ' . $e->getMessage(), 'error')
+                        new ResponseEnvelope($envelope->id, new LogMessage('Error in dispatch: ' . $e->getMessage(), 'error'))
                     );
                 } catch (StreamClosedException) {
                     throw $e;

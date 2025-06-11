@@ -71,8 +71,8 @@ final class IpcSessionTest extends TestCase
         $session->dispatch(new RequestEnvelope('123', new SimpleMessage('test')));
 
         $this->assertCount(1, $transport->sent);
-        $this->assertInstanceOf(LogMessage::class, $transport->sent[0]);
-        $this->assertStringContainsString('boom', $transport->sent[0]->message);
+        $this->assertInstanceOf(ResponseEnvelope::class, $transport->sent[0]);
+        $this->assertStringContainsString('boom', $transport->sent[0]->response->message);
     }
 
     public function testRequestCreatesPromiseAndSendsEnvelope(): void
