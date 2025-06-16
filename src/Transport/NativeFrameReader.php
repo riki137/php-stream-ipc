@@ -26,6 +26,7 @@ final class NativeFrameReader
      * @param $serializer MessageSerializer used for incoming frames.
      * @param $maxFrame ?int Maximum allowed size for a single message frame.
      */
+
     /**
      * @param resource $stream
      */

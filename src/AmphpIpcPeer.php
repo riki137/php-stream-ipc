@@ -6,8 +6,8 @@ namespace StreamIpc;
 use Amp\ByteStream\ReadableResourceStream;
 use Amp\ByteStream\WritableResourceStream;
 use Amp\DeferredFuture;
-use StreamIpc\Transport\AmpByteStreamMessageTransport;
 use Revolt\EventLoop;
+use StreamIpc\Transport\AmpByteStreamMessageTransport;
 use function Amp\Future\awaitFirst;
 use function is_resource;
 

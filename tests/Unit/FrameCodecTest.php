@@ -8,6 +8,7 @@ use StreamIpc\Transport\FrameCodec;
 use StreamIpc\Serialization\NativeMessageSerializer;
 use StreamIpc\Tests\Fixtures\SimpleMessage;
 use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\ErrorMessage;
 use RuntimeException;
 use StreamIpc\Message\Message;
 use Throwable;
@@ -183,7 +184,7 @@ final class FrameCodecTest extends TestCase
         $msgs = $codec->feed($frame);
 
         self::assertCount(1, $msgs);
-        self::assertInstanceOf(LogMessage::class, $msgs[0]);
+        self::assertInstanceOf(ErrorMessage::class, $msgs[0]);
     }
 
     /** 8. Feeding an empty string must be a no-op ******************************/

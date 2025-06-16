@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace StreamIpc;
 
+use RuntimeException;
 use StreamIpc\Transport\MessageTransport;
 use StreamIpc\Transport\NativeMessageTransport;
-use RuntimeException;
 
 /**
  * IPC peer implementation that works with standard PHP stream resources.
@@ -142,6 +142,7 @@ final class NativeIpcPeer extends IpcPeer
             $usec = (int)(($timeout - $sec) * 1e6);
         }
 
+        $writes = $except = null;
         if (@stream_select($reads, $writes, $except, $sec, $usec) <= 0) {
             // no streams ready or error occurred
             return;
