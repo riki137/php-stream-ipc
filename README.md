@@ -1,7 +1,7 @@
 # 🚀 **PHP Stream IPC**: Simple, Reliable Inter-Process Communication in Pure PHP
 
 [![Packagist Version](https://img.shields.io/packagist/v/riki137/stream-ipc.svg)](https://packagist.org/packages/riki137/stream-ipc)
-[![Code Coverage](https://codecov.io/gh/riki137/php-stream-ipc/branch/main/graph/badge.svg)](https://codecov.io/gh/riki137/stream-ipc)
+[![Code Coverage](https://codecov.io/gh/riki137/php-stream-ipc/branch/main/graph/badge.svg)](https://codecov.io/gh/riki137/php-stream-ipc)
 [![GitHub Tests](https://github.com/riki137/php-stream-ipc/actions/workflows/tests.yml/badge.svg)](https://github.com/riki137/php-stream-ipc/actions/workflows/tests.yml)
 [![PHPStan Level 8](https://img.shields.io/badge/PHPStan-Level%208-brightgreen.svg)](https://github.com/phpstan/phpstan)
 [![PHP Version](https://img.shields.io/badge/php-8.2%2B-8892BF.svg)](https://www.php.net/)
