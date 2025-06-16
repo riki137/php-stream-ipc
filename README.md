@@ -37,17 +37,6 @@ composer require riki137/stream-ipc
 
 ---
 
-
-## 📦 Quick Installation
-
-Install via Composer:
-
-```bash
-composer require riki137/stream-ipc
-```
-
----
-
 ## ⚡ Quick Usage Example
 
 ### Parent-Child IPC Example:
