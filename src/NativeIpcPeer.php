@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace StreamIpc;
 
+use RuntimeException;
 use StreamIpc\Transport\MessageTransport;
 use StreamIpc\Transport\NativeMessageTransport;
-use RuntimeException;
 
 /**
  * IPC peer implementation that works with standard PHP stream resources.

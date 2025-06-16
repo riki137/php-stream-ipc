@@ -12,6 +12,8 @@ use StreamIpc\Message\Message;
  */
 final readonly class LogMessage implements Message
 {
+    public const LEVEL_JUNK = 'junk';
+
     /**
      * Constructs a new LogMessage.
      *

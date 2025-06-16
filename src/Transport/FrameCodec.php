@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace StreamIpc\Transport;
 
 use RuntimeException;
+use StreamIpc\Message\ErrorMessage;
 use StreamIpc\Message\LogMessage;
 use StreamIpc\Message\Message;
 use StreamIpc\Serialization\MessageSerializer;
@@ -11,17 +12,19 @@ use Throwable;
 
 final class FrameCodec
 {
-    public const MAGIC      = "\xF3\x4A\x9D\xE2";
+    public const MAGIC = "\xF3\x4A\x9D\xE2";
     private const MAGIC_LEN = 4;
-    private const LEN_LEN   = 4;
+    private const LEN_LEN = 4;
 
     private string $buffer = '';
-    private int    $scanPos = 0;
+
+    private int $scanPos = 0;
 
     public function __construct(
         private readonly MessageSerializer $serializer,
         private readonly ?int $maxFrame = null
-    ) {}
+    ) {
+    }
 
     public function pack(Message $message): string
     {
@@ -48,7 +51,7 @@ final class FrameCodec
                 $junkLen = strlen($this->buffer) - $overlap;
 
                 if ($junkLen > 0) {
-                    $messages[] = new LogMessage(substr($this->buffer, 0, $junkLen), 'error');
+                    $messages[] = new LogMessage(substr($this->buffer, 0, $junkLen), LogMessage::LEVEL_JUNK);
                     $this->buffer = substr($this->buffer, $junkLen); // keep only overlap
                 }
                 $this->scanPos = 0;
@@ -57,7 +60,7 @@ final class FrameCodec
 
             // ── 2. junk before header ──────────────────────────────────────────────
             if ($pos > 0) {
-                $messages[] = new LogMessage(substr($this->buffer, 0, $pos), 'error');
+                $messages[] = new LogMessage(substr($this->buffer, 0, $pos), LogMessage::LEVEL_JUNK);
                 $this->buffer = substr($this->buffer, $pos);
                 $this->scanPos = 0;
             }
@@ -69,10 +72,10 @@ final class FrameCodec
 
             // ── 4. parse 32-bit BE length fast ─────────────────────────────────────
             $lenOffset = self::MAGIC_LEN;
-            $length = (ord($this->buffer[$lenOffset    ]) << 24)
+            $length = (ord($this->buffer[$lenOffset ]) << 24)
                 | (ord($this->buffer[$lenOffset + 1]) << 16)
-                | (ord($this->buffer[$lenOffset + 2]) <<  8)
-                |  ord($this->buffer[$lenOffset + 3]);
+                | (ord($this->buffer[$lenOffset + 2]) << 8)
+                | ord($this->buffer[$lenOffset + 3]);
 
             if ($this->maxFrame !== null && $length > $this->maxFrame) {
                 throw new RuntimeException("Frame length $length exceeds max {$this->maxFrame}");
@@ -84,16 +87,18 @@ final class FrameCodec
             }
 
             // ── 5. extract payload & consume buffer ────────────────────────────────
-            $payload = substr($this->buffer,
+            $payload = substr(
+                $this->buffer,
                 self::MAGIC_LEN + self::LEN_LEN,
-                $length);
+                $length
+            );
             $this->buffer = substr($this->buffer, $frameSize);
             $this->scanPos = 0;
 
             try {
                 $messages[] = $this->serializer->deserialize($payload);
             } catch (Throwable $e) {
-                $messages[] = new LogMessage($payload, 'error');
+                $messages[] = new ErrorMessage('', $e);
             }
         }
 
