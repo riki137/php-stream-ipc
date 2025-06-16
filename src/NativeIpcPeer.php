@@ -142,6 +142,7 @@ final class NativeIpcPeer extends IpcPeer
             $usec = (int)(($timeout - $sec) * 1e6);
         }
 
+        $writes = $except = null;
         if (@stream_select($reads, $writes, $except, $sec, $usec) <= 0) {
             // no streams ready or error occurred
             return;
