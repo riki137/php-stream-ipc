@@ -98,7 +98,7 @@ final class FrameCodec
             try {
                 $messages[] = $this->serializer->deserialize($payload);
             } catch (Throwable $e) {
-                $messages[] = new ErrorMessage('', $e);
+                $messages[] = new ErrorMessage('Failed to deserialize message payload', $e);
             }
         }
 
