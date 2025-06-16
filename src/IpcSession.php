@@ -128,9 +128,10 @@ final class IpcSession
     /**
      * Sends a request message and returns a promise for the response.
      *
-     * @param $timeout ?float Optional timeout in seconds. Null to wait indefinitely.
+     * @param $timeout float Optional timeout in seconds. Defaults to
+     *                    {@see ResponsePromise::DEFAULT_TIMEOUT}.
      */
-    public function request(Message $msg, ?float $timeout = null): ResponsePromise
+    public function request(Message $msg, float $timeout = ResponsePromise::DEFAULT_TIMEOUT): ResponsePromise
     {
         $id = $this->idGen->generate();
         $this->transport->send(new RequestEnvelope($id, $msg));

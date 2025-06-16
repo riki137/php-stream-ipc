@@ -72,6 +72,7 @@ final class IpcSessionTest extends TestCase
 
         $this->assertCount(1, $transport->sent);
         $this->assertInstanceOf(ResponseEnvelope::class, $transport->sent[0]);
+        $this->assertSame('123', $transport->sent[0]->id);
         $this->assertStringContainsString('boom', $transport->sent[0]->response->message);
     }
 

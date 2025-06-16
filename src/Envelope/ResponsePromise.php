@@ -15,6 +15,7 @@ use StreamIpc\Transport\TimeoutException;
  */
 final class ResponsePromise
 {
+    public const DEFAULT_TIMEOUT = 30.0;
     /** @var ?Message The response message, null if not yet received. */
     private ?Message $response = null;
 
@@ -23,16 +24,17 @@ final class ResponsePromise
 
     /**
      * @param $peer    IpcPeer Peer instance managing the communication.
-     * @param $session  IpcSession associated with this promise.
-     * @param $id       string Identifier of the request this promise is for.
-     * @param $timeout  ?float Timeout in seconds for awaiting the response, null for none.
+     * @param $session IpcSession associated with this promise.
+     * @param $id      string Identifier of the request this promise is for.
+     * @param $timeout float  Timeout in seconds for awaiting the response.
+     *                 Defaults to {@see DEFAULT_TIMEOUT}.
      * @internal
      */
     public function __construct(
         private readonly IpcPeer $peer,
         private readonly IpcSession $session,
         private readonly string $id,
-        private readonly ?float $timeout
+        private readonly float $timeout = self::DEFAULT_TIMEOUT
     ) {
         $this->start = microtime(true);
         $this->session->registerPromise($this->id);
@@ -51,12 +53,9 @@ final class ResponsePromise
         while ($this->response === null) {
             $elapsed = microtime(true) - $this->start;
 
-            $remaining = null;
-            if ($this->timeout !== null) {
-                $remaining = $this->timeout - $elapsed;
-                if ($remaining <= 0) {
-                    throw new TimeoutException("IPC request timed out after {$this->timeout}s");
-                }
+            $remaining = $this->timeout - $elapsed;
+            if ($remaining <= 0) {
+                throw new TimeoutException("IPC request timed out after {$this->timeout}s");
             }
 
             // now pass the remaining time (or null) into tick()

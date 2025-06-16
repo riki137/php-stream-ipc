@@ -123,6 +123,7 @@ $session->onRequest(function (Message $msg): ?Message {
 
 ### ⏳ Timeout and Exception Management
 
+Requests automatically use a 30 second timeout if you don't specify one.
 Handle request timeouts gracefully:
 
 ```php
