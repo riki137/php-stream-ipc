@@ -2,7 +2,7 @@
 namespace StreamIpc\Tests\Unit;
 
 use StreamIpc\Serialization\JsonMessageSerializer;
-use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\ErrorMessage;
 use StreamIpc\Tests\Fixtures\SimpleMessage;
 use StreamIpc\Tests\Fixtures\ComplexMessage;
 use PHPUnit\Framework\TestCase;
@@ -23,22 +23,22 @@ final class JsonMessageSerializerTest extends TestCase
         $this->assertSame([1, 2], $decoded->list);
     }
 
-    public function testUnknownClassReturnsLogMessage(): void
+    public function testUnknownClassReturnsErrorMessage(): void
     {
         $serializer = new JsonMessageSerializer();
         $json = json_encode(['__class' => 'NoSuchClass', 'foo' => 'bar']);
         $decoded = $serializer->deserialize($json);
 
-        $this->assertInstanceOf(LogMessage::class, $decoded);
-        $this->assertSame('error', $decoded->level);
+        $this->assertInstanceOf(ErrorMessage::class, $decoded);
+        $this->assertStringContainsString('Unknown class', $decoded->toString());
     }
 
-    public function testInvalidJsonProducesLogMessage(): void
+    public function testInvalidJsonProducesErrorMessage(): void
     {
         $serializer = new JsonMessageSerializer();
         $decoded = $serializer->deserialize('{invalid json');
-        $this->assertInstanceOf(LogMessage::class, $decoded);
-        $this->assertSame('{invalid json', $decoded->message);
+        $this->assertInstanceOf(ErrorMessage::class, $decoded);
+        $this->assertStringContainsString('json_decode failed', $decoded->toString());
     }
 
     public function testDeserializedObjectNotImplementingMessage(): void
@@ -46,7 +46,7 @@ final class JsonMessageSerializerTest extends TestCase
         $serializer = new JsonMessageSerializer();
         $objData = json_encode(['__class' => \stdClass::class]);
         $decoded = $serializer->deserialize($objData);
-        $this->assertInstanceOf(LogMessage::class, $decoded);
-        $this->assertSame('error', $decoded->level);
+        $this->assertInstanceOf(ErrorMessage::class, $decoded);
+        $this->assertStringContainsString('Decoded object is not a Message', $decoded->toString());
     }
 }
