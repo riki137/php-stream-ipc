@@ -5,6 +5,7 @@ use StreamIpc\IpcPeer;
 use StreamIpc\Tests\Fixtures\FakeTransport;
 use StreamIpc\Tests\Fixtures\SimpleMessage;
 use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\ErrorMessage;
 use StreamIpc\Envelope\RequestEnvelope;
 use StreamIpc\Envelope\ResponseEnvelope;
 use PHPUnit\Framework\TestCase;
@@ -58,7 +59,7 @@ final class IpcSessionTest extends TestCase
         unset($promise);
     }
 
-    public function testDispatchErrorFromHandlerSendsLogMessage(): void
+    public function testDispatchErrorFromHandlerSendsErrorMessage(): void
     {
         $peer = new TestPeer();
         $transport = new FakeTransport();
@@ -73,7 +74,8 @@ final class IpcSessionTest extends TestCase
         $this->assertCount(1, $transport->sent);
         $this->assertInstanceOf(ResponseEnvelope::class, $transport->sent[0]);
         $this->assertSame('123', $transport->sent[0]->id);
-        $this->assertStringContainsString('boom', $transport->sent[0]->response->message);
+        $this->assertInstanceOf(ErrorMessage::class, $transport->sent[0]->response);
+        $this->assertStringContainsString('boom', $transport->sent[0]->response->toString());
     }
 
     public function testRequestCreatesPromiseAndSendsEnvelope(): void

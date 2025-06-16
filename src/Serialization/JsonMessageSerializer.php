@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace StreamIpc\Serialization;
 
 use JsonException;
-use StreamIpc\Message\LogMessage;
-use StreamIpc\Message\Message;
 use ReflectionClass;
+use StreamIpc\Message\ErrorMessage;
+use StreamIpc\Message\Message;
 use Throwable;
 use function class_exists;
 
@@ -100,17 +100,17 @@ final readonly class JsonMessageSerializer implements MessageSerializer
     {
         try {
             $decoded = json_decode($data, true, 512, JSON_THROW_ON_ERROR);
-        } catch (Throwable $e) {
-            return new LogMessage($data, 'error');
+        } catch (JsonException $e) {
+            return new ErrorMessage('json_decode failed:' . $data, $e);
         }
 
         if (!is_array($decoded) || !isset($decoded['__class'])) {
-            return new LogMessage($data, 'error');
+            return new ErrorMessage('Invalid data to unserialize: ' . $data);
         }
 
         $class = $decoded['__class'];
         if (!class_exists($class)) {
-            return new LogMessage("Unknown class: {$class}", 'error');
+            return new ErrorMessage("Unknown class: {$class}");
         }
 
         try {
@@ -127,11 +127,11 @@ final readonly class JsonMessageSerializer implements MessageSerializer
                 $prop->setValue($inst, $this->fromArray($value));
             }
         } catch (Throwable $e) {
-            return new LogMessage($data, 'error');
+            return new ErrorMessage('Failed to unserialize data:' . $data, $e);
         }
 
         if (!$inst instanceof Message) {
-            return new LogMessage("Decoded object is not a Message: {$data}", 'error');
+            return new ErrorMessage("Decoded object is not a Message: {$data}");
         }
 
         return $inst;

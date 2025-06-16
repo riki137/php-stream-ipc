@@ -7,7 +7,7 @@ use StreamIpc\Envelope\Id\RequestIdGenerator;
 use StreamIpc\Envelope\RequestEnvelope;
 use StreamIpc\Envelope\ResponseEnvelope;
 use StreamIpc\Envelope\ResponsePromise;
-use StreamIpc\Message\LogMessage;
+use StreamIpc\Message\ErrorMessage;
 use StreamIpc\Message\Message;
 use StreamIpc\Transport\MessageTransport;
 use StreamIpc\Transport\StreamClosedException;
@@ -91,7 +91,7 @@ final class IpcSession
             } catch (Throwable $e) {
                 try {
                     $this->transport->send(
-                        new ResponseEnvelope($envelope->id, new LogMessage('Error in dispatch: ' . $e->getMessage(), 'error'))
+                        new ResponseEnvelope($envelope->id, new ErrorMessage('Error in dispatch', $e))
                     );
                 } catch (StreamClosedException) {
                     throw $e;

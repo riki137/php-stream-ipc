@@ -16,6 +16,7 @@ use StreamIpc\Transport\TimeoutException;
 final class ResponsePromise
 {
     public const DEFAULT_TIMEOUT = 30.0;
+
     /** @var ?Message The response message, null if not yet received. */
     private ?Message $response = null;
 
