@@ -23,7 +23,9 @@ abstract class IpcPeer
 
     /**
      * Initialise the peer with optional serializer and ID generator.
-     * Defaults are used when arguments are not supplied.
+     *
+     * @param MessageSerializer|null $defaultSerializer Serializer used when none is provided by the session.
+     * @param RequestIdGenerator|null $idGen            Generator for correlating requests and responses.
      */
     public function __construct(?MessageSerializer $defaultSerializer = null, ?RequestIdGenerator $idGen = null)
     {

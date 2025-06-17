@@ -17,7 +17,7 @@ final readonly class NativeMessageSerializer implements MessageSerializer
     /**
      * Serializes a {@see Message} object using PHP's native `serialize()` function.
      *
-     * @param $data Message The message to serialize.
+     * @param Message $data The message to serialize.
      */
     public function serialize(Message $data): string
     {
@@ -28,7 +28,7 @@ final readonly class NativeMessageSerializer implements MessageSerializer
      * Deserializes a string payload back into a {@see Message} using PHP's `unserialize()`.
      * If unserialization fails or the result does not implement {@see Message}, an error log is returned.
      *
-     * @param $data string The string payload to deserialize.
+     * @param string $data The string payload to deserialize.
      */
     public function deserialize(string $data): Message
     {

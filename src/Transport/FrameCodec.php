@@ -10,6 +10,12 @@ use StreamIpc\Message\Message;
 use StreamIpc\Serialization\MessageSerializer;
 use Throwable;
 
+/**
+ * Encodes and decodes messages into a simple binary framed format.
+ *
+ * Each frame starts with a 4 byte magic sequence followed by a 32‑bit length
+ * header. The payload contains the serialized message.
+ */
 final class FrameCodec
 {
     public const MAGIC = "\xF3\x4A\x9D\xE2";
@@ -20,19 +26,36 @@ final class FrameCodec
 
     private int $scanPos = 0;
 
+    /**
+     * @param MessageSerializer $serializer Serializer used for packing and unpacking messages.
+     * @param int|null          $maxFrame   Optional maximum frame size in bytes.
+     */
     public function __construct(
         private readonly MessageSerializer $serializer,
         private readonly ?int $maxFrame = null
     ) {
     }
 
+    /**
+     * Wrap a serialized message in a frame.
+     */
     public function pack(Message $message): string
     {
         $payload = $this->serializer->serialize($message);
         return self::MAGIC . pack('N', strlen($payload)) . $payload;
     }
 
-    /** @return Message[] */
+    /**
+     * Feed raw bytes into the codec and return any complete messages.
+     *
+     * @param string $chunk Data read from the transport.
+     * @return Message[] Parsed messages or log entries.
+     *
+     * @example
+     * ```php
+     * $messages = $codec->feed($socket->read());
+     * ```
+     */
     public function feed(string $chunk): array
     {
         if ($chunk !== '') {
@@ -105,12 +128,17 @@ final class FrameCodec
         return $messages;
     }
 
+    /**
+     * Indicates whether any partial frame data is currently buffered.
+     */
     public function hasBufferedData(): bool
     {
         return $this->buffer !== '';
     }
 
-    /** Longest suffix of buffer that matches the start of MAGIC (0-3 bytes). */
+    /**
+     * Longest suffix of buffer that matches the start of MAGIC (0‑3 bytes).
+     */
     private function computeOverlap(): int
     {
         $max = min(strlen($this->buffer), self::MAGIC_LEN - 1);

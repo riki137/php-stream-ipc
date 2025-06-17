@@ -20,15 +20,9 @@ final class NativeFrameReader
     private FrameCodec $codec;
 
     /**
-     * Constructs a new StreamFrameReader.
-     *
-     * @param $stream resource Stream to read from.
-     * @param $serializer MessageSerializer used for incoming frames.
-     * @param $maxFrame ?int Maximum allowed size for a single message frame.
-     */
-
-    /**
-     * @param resource $stream
+     * @param resource          $stream     Stream to read from.
+     * @param MessageSerializer $serializer Serializer used for incoming frames.
+     * @param int|null          $maxFrame   Maximum allowed size for a single message frame.
      */
     public function __construct(
         private $stream,
@@ -42,6 +36,10 @@ final class NativeFrameReader
      * Gets the underlying stream resource.
      *
      * @return resource
+     */
+
+    /**
+     * @return resource Underlying stream resource.
      */
     public function getStream()
     {

@@ -24,11 +24,11 @@ final class ResponsePromise
     private float $start;
 
     /**
-     * @param $peer    IpcPeer Peer instance managing the communication.
-     * @param $session IpcSession associated with this promise.
-     * @param $id      string Identifier of the request this promise is for.
-     * @param $timeout float  Timeout in seconds for awaiting the response.
-     *                 Defaults to {@see DEFAULT_TIMEOUT}.
+     * @param IpcPeer    $peer    Peer instance managing the communication.
+     * @param IpcSession $session IpcSession associated with this promise.
+     * @param string     $id      Identifier of the request this promise is for.
+     * @param float      $timeout Timeout in seconds for awaiting the response.
+     *                            Defaults to {@see DEFAULT_TIMEOUT}.
      * @internal
      */
     public function __construct(

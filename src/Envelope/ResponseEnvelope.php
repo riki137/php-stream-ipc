@@ -14,10 +14,10 @@ use StreamIpc\Message\Message;
 final readonly class ResponseEnvelope implements Message
 {
     /**
-     * Constructs a new ResponseEnvelope.
+     * Create a response envelope.
      *
-     * @param $id       string Identifier of the original request this response corresponds to.
-     * @param $response Message payload of the response.
+     * @param string  $id       Identifier of the original request.
+     * @param Message $response Payload of the response message.
      */
     public function __construct(public string $id, public Message $response)
     {

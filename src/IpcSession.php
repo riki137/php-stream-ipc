@@ -34,11 +34,11 @@ final class IpcSession
     private array $pending = [];
 
     /**
-     * Constructs a new IpcSession.
+     * Create a new IPC session.
      *
-     * @param $peer      IpcPeer Parent peer managing this session.
-     * @param $transport MessageTransport Transport used for sending and receiving messages.
-     * @param $idGen     RequestIdGenerator Generator for creating unique request IDs.
+     * @param IpcPeer            $peer      Parent peer managing this session.
+     * @param MessageTransport   $transport Transport used for sending and receiving messages.
+     * @param RequestIdGenerator $idGen     Generator for creating unique request IDs.
      */
     public function __construct(
         private readonly IpcPeer $peer,
@@ -128,8 +128,14 @@ final class IpcSession
     /**
      * Sends a request message and returns a promise for the response.
      *
-     * @param $timeout float Optional timeout in seconds. Defaults to
-     *                    {@see ResponsePromise::DEFAULT_TIMEOUT}.
+     * @param float $timeout Optional timeout in seconds. Defaults to
+     *                       {@see ResponsePromise::DEFAULT_TIMEOUT}.
+     *
+     * @example
+     * ```php
+     * $promise = $session->request(new MyMessage());
+     * $reply = $promise->await();
+     * ```
      */
     public function request(Message $msg, float $timeout = ResponsePromise::DEFAULT_TIMEOUT): ResponsePromise
     {

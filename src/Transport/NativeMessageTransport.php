@@ -51,7 +51,7 @@ final class NativeMessageTransport implements MessageTransport
      * Sends a message over the write stream.
      * The message is serialized, prefixed with a magic number and its length, and then written to the stream.
      *
-     * @param $message Message The message to send.
+     * @param Message $message The message to send.
      * @throws StreamClosedException If the write stream is closed or writing fails.
      */
     public function send(Message $message): void

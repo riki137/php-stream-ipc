@@ -16,7 +16,7 @@ final class SymfonyIpcPeer extends IpcPeer
     private const DEFAULT_SLEEP_TICK = 500;
 
     /**
-     * @param $sleepTick ?int Delay in microseconds between polling the process output.
+     * @param int|null $sleepTick Delay in microseconds between polling the process output.
      */
     public function __construct(?MessageSerializer $defaultSerializer = null, ?RequestIdGenerator $idGen = null, private readonly ?int $sleepTick = null)
     {
