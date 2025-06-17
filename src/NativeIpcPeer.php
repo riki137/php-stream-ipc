@@ -12,6 +12,8 @@ use StreamIpc\Transport\NativeMessageTransport;
  */
 final class NativeIpcPeer extends IpcPeer
 {
+    private const USEC = 1e6;
+
     /** @var resource[] keyed by (int)$stream */
     private array $readSet = [];
 
@@ -139,7 +141,7 @@ final class NativeIpcPeer extends IpcPeer
         $sec = $usec = null;
         if ($timeout !== null) {
             $sec = (int)floor($timeout);
-            $usec = (int)(($timeout - $sec) * 1e6);
+            $usec = (int)(($timeout - $sec) * self::USEC);
         }
 
         $writes = $except = null;

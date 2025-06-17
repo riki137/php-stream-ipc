@@ -72,7 +72,7 @@ final class FrameCodec
 
             // ── 4. parse 32-bit BE length fast ─────────────────────────────────────
             $lenOffset = self::MAGIC_LEN;
-            $length = (ord($this->buffer[$lenOffset ]) << 24)
+            $length = (ord($this->buffer[$lenOffset]) << 24)
                 | (ord($this->buffer[$lenOffset + 1]) << 16)
                 | (ord($this->buffer[$lenOffset + 2]) << 8)
                 | ord($this->buffer[$lenOffset + 3]);

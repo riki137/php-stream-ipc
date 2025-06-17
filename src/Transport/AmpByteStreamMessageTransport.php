@@ -16,7 +16,7 @@ use function is_resource;
 class AmpByteStreamMessageTransport implements MessageTransport
 {
     /** @var ReadableResourceStream[] */
-    private array $readStreams;
+    private array $readStreams = [];
 
     private FrameCodec $codec;
 
