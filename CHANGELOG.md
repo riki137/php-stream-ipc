@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-## [1.0.0-beta2] - 2025-06-18
+## [1.0.0-beta3] - 2025-06-18
 ### Added
 - ErrorMessageException in ResponsePromise
 
@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial beta release of the PHP Stream IPC library
 
-[Unreleased]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta2...main
-[1.0.0-beta2]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta2...1.0.0-beta2
+[Unreleased]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta3...main
+[1.0.0-beta3]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta2...1.0.0-beta3
 [1.0.0-beta2]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta1...1.0.0-beta2
 [1.0.0-beta1]: https://github.com/riki137/php-stream-ipc/releases/tag/1.0.0-beta1
