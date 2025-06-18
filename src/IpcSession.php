@@ -76,43 +76,55 @@ final class IpcSession
      */
     public function dispatch(Message $envelope): void
     {
-        if ($envelope instanceof RequestEnvelope) {
-            try {
-                foreach ($this->requestHandlers as $h) {
-                    $resp = $h($envelope->request, $this);
-                    if ($resp instanceof Message) {
-                        $this->transport->send(
-                            new ResponseEnvelope($envelope->id, $resp)
-                        );
-                        break;
-                    }
-                }
-            } catch (StreamClosedException) {
-            } catch (Throwable $e) {
-                try {
-                    $this->transport->send(
-                        new ResponseEnvelope($envelope->id, new ErrorMessage('Error in dispatch', $e))
-                    );
-                } catch (StreamClosedException) {
-                    throw $e;
-                }
-            }
-        } elseif ($envelope instanceof ResponseEnvelope) {
+        // Handle response messages (simplest case)
+        if ($envelope instanceof ResponseEnvelope) {
             if (isset($this->pending[$envelope->id])) {
                 $this->responses[$envelope->id] = $envelope->response;
             }
-        } else {
-            $exception = null;
+            return;
+        }
+
+        // Handle request messages
+        if ($envelope instanceof RequestEnvelope) {
+            $this->handleRequest($envelope);
+            return;
+        }
+
+        // Handle notification messages
+        foreach ($this->messageHandlers as $handler) {
+            $handler($envelope, $this);
+        }
+    }
+
+    /**
+     * Processes a request and sends an appropriate response.
+     */
+    private function handleRequest(RequestEnvelope $envelope): void
+    {
+        try {
+            // Try to find a handler that returns a message
+            foreach ($this->requestHandlers as $handler) {
+                if (($response = $handler($envelope->request, $this)) instanceof Message) {
+                    $this->transport->send(new ResponseEnvelope($envelope->id, $response));
+                    return;
+                }
+            }
+
+            // No handler found
+            $this->transport->send(new ResponseEnvelope(
+                $envelope->id,
+                new ErrorMessage('Unhandled request')
+            ));
+        } catch (StreamClosedException) {
+            // Can't send response if stream is closed
+        } catch (Throwable $error) {
             try {
-                foreach ($this->messageHandlers as $h) {
-                    $h($envelope, $this);
-                }
-            } catch (Throwable $e) {
-                $exception = $e;
-            } finally {
-                if ($exception !== null) {
-                    throw $exception;
-                }
+                $this->transport->send(new ResponseEnvelope(
+                    $envelope->id,
+                    new ErrorMessage('Error in dispatch', $error)
+                ));
+            } catch (StreamClosedException) {
+                throw $error;
             }
         }
     }

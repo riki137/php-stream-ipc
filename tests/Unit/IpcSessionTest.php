@@ -78,6 +78,20 @@ final class IpcSessionTest extends TestCase
         $this->assertStringContainsString('boom', $transport->sent[0]->response->toString());
     }
 
+    public function testDispatchRequestWithoutHandlersSendsErrorMessage(): void
+    {
+        $peer = new TestPeer();
+        $transport = new FakeTransport();
+        $session = $peer->createFakeSession($transport);
+
+        $session->dispatch(new RequestEnvelope('1', new SimpleMessage('hi')));
+
+        $this->assertCount(1, $transport->sent);
+        $this->assertInstanceOf(ResponseEnvelope::class, $transport->sent[0]);
+        $this->assertSame('1', $transport->sent[0]->id);
+        $this->assertInstanceOf(ErrorMessage::class, $transport->sent[0]->response);
+    }
+
     public function testRequestCreatesPromiseAndSendsEnvelope(): void
     {
         $peer = new TestPeer();

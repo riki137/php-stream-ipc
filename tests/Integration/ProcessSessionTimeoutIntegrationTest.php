@@ -73,11 +73,10 @@ PHP;
         $peer    = new NativeIpcPeer();
         $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('IPC request timed out after 0.1s');
-
-        // use a short timeout to trigger failure
-        $session->request(new LogMessage('ping', 'info'), 0.1)->await();
+        $resp = $session->request(new LogMessage('ping', 'info'), 0.1)->await();
+        $this->assertInstanceOf(Message::class, $resp);
+        $this->assertInstanceOf(\StreamIpc\Message\ErrorMessage::class, $resp);
+        $this->assertSame('Unhandled request', $resp->toString());
 
         // clean up
         proc_terminate($process);
