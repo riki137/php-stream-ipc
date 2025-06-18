@@ -353,7 +353,7 @@ $session->onMessage(function(Message $msg) {
 
 // Send request and wait for final response
 echo "Sending request...\n";
-$response = $session->request(new LogMessage("Start processing"), 10.0);
+$response = $session->request(new LogMessage("Start processing"), 10.0)->await();
 echo "Final response: {$response->message}\n";
 
 proc_close($process);
