@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace StreamIpc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use StreamIpc\Message\ErrorMessageException;
 use StreamIpc\NativeIpcPeer;
 use StreamIpc\Message\LogMessage;
 use StreamIpc\Message\Message;
@@ -73,10 +74,9 @@ PHP;
         $peer    = new NativeIpcPeer();
         $session = $peer->createStreamSession($stdin, $stdout, $stderr);
 
-        $resp = $session->request(new LogMessage('ping', 'info'), 0.1)->await();
-        $this->assertInstanceOf(Message::class, $resp);
-        $this->assertInstanceOf(\StreamIpc\Message\ErrorMessage::class, $resp);
-        $this->assertSame('Unhandled request', $resp->toString());
+        $this->expectException(ErrorMessageException::class);
+        $this->expectExceptionMessage('Unhandled request');
+        $session->request(new LogMessage('ping', 'info'), 0.1)->await();
 
         // clean up
         proc_terminate($process);

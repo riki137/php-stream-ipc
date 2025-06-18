@@ -6,6 +6,8 @@ namespace StreamIpc\Envelope;
 
 use StreamIpc\IpcPeer;
 use StreamIpc\IpcSession;
+use StreamIpc\Message\ErrorMessage;
+use StreamIpc\Message\ErrorMessageException;
 use StreamIpc\Message\Message;
 use StreamIpc\Transport\TimeoutException;
 
@@ -46,6 +48,7 @@ final class ResponsePromise
      * This method blocks until the response is received or a timeout occurs.
      *
      * @throws TimeoutException If the request times out before a response is received.
+     * @throws ErrorMessageException If the response is an error message.
      */
     public function await(): Message
     {
@@ -66,6 +69,10 @@ final class ResponsePromise
 
         $resp = $this->response;
         $this->session->cleanupPromise($this->id);
+
+        if ($this->response instanceof ErrorMessage) {
+            throw new ErrorMessageException($this->response);
+        }
 
         return $resp;
     }
