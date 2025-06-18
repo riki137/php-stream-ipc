@@ -152,8 +152,10 @@ final class IpcSession
     public function request(Message $msg, float $timeout = ResponsePromise::DEFAULT_TIMEOUT): ResponsePromise
     {
         $id = $this->idGen->generate();
+        $promise = new ResponsePromise($this->peer, $this, $id, $timeout);
         $this->transport->send(new RequestEnvelope($id, $msg));
-        return new ResponsePromise($this->peer, $this, $id, $timeout);
+
+        return $promise;
     }
 
     /**
