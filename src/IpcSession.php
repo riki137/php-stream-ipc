@@ -36,9 +36,9 @@ final class IpcSession
     /**
      * Create a new IPC session.
      *
-     * @param IpcPeer            $peer      Parent peer managing this session.
-     * @param MessageTransport   $transport Transport used for sending and receiving messages.
-     * @param RequestIdGenerator $idGen     Generator for creating unique request IDs.
+     * @param IpcPeer $peer Parent peer managing this session.
+     * @param MessageTransport $transport Transport used for sending and receiving messages.
+     * @param RequestIdGenerator $idGen Generator for creating unique request IDs.
      */
     public function __construct(
         private readonly IpcPeer $peer,
@@ -173,7 +173,7 @@ final class IpcSession
     /**
      * Registers a handler for incoming notification messages.
      *
-     * @param callable $handler Callback receiving the message and the session.
+     * @param callable(Message, IpcSession): void $handler Callback receiving the message and the session.
      */
     public function onMessage(callable $handler): void
     {
@@ -182,6 +182,8 @@ final class IpcSession
 
     /**
      * Unregisters a previously registered message handler.
+     *
+     * @param callable(Message, IpcSession): void $handler The handler to remove.
      */
     public function offMessage(callable $handler): void
     {
@@ -196,7 +198,7 @@ final class IpcSession
     /**
      * Registers a handler for incoming request messages.
      *
-     * @param callable $handler Callback receiving the request message and the session.
+     * @param callable(Message, IpcSession): void $handler Callback receiving the request message and the session.
      */
     public function onRequest(callable $handler): void
     {
@@ -205,6 +207,8 @@ final class IpcSession
 
     /**
      * Unregisters a previously registered request handler.
+     *
+     * @param callable(Message, IpcSession): void $handler The handler to remove.
      */
     public function offRequest(callable $handler): void
     {

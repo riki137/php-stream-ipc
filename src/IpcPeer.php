@@ -51,6 +51,10 @@ abstract class IpcPeer
         $this->sessions = array_filter($this->sessions, fn($s) => $s !== $session);
     }
 
+    /**
+     * @param float|null $timeout in seconds, or null for no timeout.
+     * @return void
+     */
     abstract public function tick(?float $timeout = null): void;
 
     /**

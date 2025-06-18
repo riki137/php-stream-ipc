@@ -6,3 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+
+
+## [1.0.0-beta1] - 2025-06-18
+### Added
+- Initial beta release of the PHP Stream IPC library
+
+[Unreleased]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta1...HEAD
+[1.0.0-beta1]: https://github.com/riki137/php-stream-ipc/releases/tag/1.0.0-beta1
