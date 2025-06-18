@@ -24,7 +24,7 @@ final class IpcSession
     /** @var array<int, callable(Message, IpcSession): void> Pending message handlers, numerically indexed. */
     private array $messageHandlers = [];
 
-    /** @var array<int, callable(Message, IpcSession): (Message|null)> Pending request handlers, numerically indexed. */
+    /** @var array<int, (callable(Message, IpcSession):(Message|null))> Pending request handlers, numerically indexed. */
     private array $requestHandlers = [];
 
     /** @var array<string, Message> Pending responses, indexed by request ID */
@@ -200,7 +200,7 @@ final class IpcSession
     /**
      * Registers a handler for incoming request messages.
      *
-     * @param callable(Message, IpcSession): void $handler Callback receiving the request message and the session.
+     * @param callable(Message, IpcSession): (Message|null) $handler Callback receiving the request message and the session, returning a Message or null.
      */
     public function onRequest(callable $handler): void
     {
@@ -210,7 +210,7 @@ final class IpcSession
     /**
      * Unregisters a previously registered request handler.
      *
-     * @param callable(Message, IpcSession): void $handler The handler to remove.
+     * @param callable(Message, IpcSession): (Message|null) $handler The handler to remove.
      */
     public function offRequest(callable $handler): void
     {
