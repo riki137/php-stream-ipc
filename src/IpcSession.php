@@ -113,7 +113,7 @@ final class IpcSession
             // No handler found
             $this->transport->send(new ResponseEnvelope(
                 $envelope->id,
-                new ErrorMessage('Unhandled request')
+                new ErrorMessage('Unhandled request: '. $envelope->request::class)
             ));
         } catch (StreamClosedException) {
             // Can't send response if stream is closed
