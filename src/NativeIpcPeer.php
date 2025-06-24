@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace StreamIpc;
 
 use RuntimeException;
+use TypeError;
+use ValueError;
 use StreamIpc\Transport\MessageTransport;
 use StreamIpc\Transport\NativeMessageTransport;
 
@@ -145,9 +147,24 @@ final class NativeIpcPeer extends IpcPeer
         }
 
         $writes = $except = null;
-        if (@stream_select($reads, $writes, $except, $sec, $usec) <= 0) {
-            // no streams ready or error occurred
-            return;
+        try {
+            if (@stream_select($reads, $writes, $except, $sec, $usec) <= 0) {
+                // no streams ready or error occurred
+                return;
+            }
+        } catch (TypeError|ValueError $e) {
+            foreach ($this->readSet as $key => $stream) {
+                $test = [$stream];
+                $w = $ex = null;
+                try {
+                    stream_select($test, $w, $ex, 0, 0);
+                } catch (TypeError|ValueError) {
+                    [$session] = $this->fdMap[$key];
+                    throw new InvalidStreamException($session, null, 0, $e);
+                }
+            }
+
+            throw $e;
         }
 
         foreach ($reads as $stream) {
