@@ -6,9 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+
+
+## [1.0.0-beta5] - 2025-06-24
 ### Added
 - onException callback
-
 
 ## [1.0.0-beta4] - 2025-06-24
 ### Added
@@ -28,7 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial beta release of the PHP Stream IPC library
 
-[Unreleased]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta4...main
+[Unreleased]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta5...main
+[1.0.0-beta5]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta4...1.0.0-beta5
 [1.0.0-beta4]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta3...1.0.0-beta4
 [1.0.0-beta3]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta2...1.0.0-beta3
 [1.0.0-beta2]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta1...1.0.0-beta2
