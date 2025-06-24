@@ -4,10 +4,11 @@ declare(strict_types=1);
 namespace StreamIpc;
 
 use RuntimeException;
-use TypeError;
-use ValueError;
 use StreamIpc\Transport\MessageTransport;
 use StreamIpc\Transport\NativeMessageTransport;
+use Throwable;
+use TypeError;
+use ValueError;
 
 /**
  * IPC peer implementation that works with standard PHP stream resources.
@@ -152,24 +153,8 @@ final class NativeIpcPeer extends IpcPeer
                 // no streams ready or error occurred
                 return;
             }
-        } catch (TypeError|ValueError $e) {
-            $handled = false;
-            foreach ($this->readSet as $key => $stream) {
-                $test = [$stream];
-                $w = $ex = null;
-                try {
-                    stream_select($test, $w, $ex, 0, 0);
-                } catch (TypeError|ValueError) {
-                    [$session] = $this->fdMap[$key];
-                    $session->triggerException(new InvalidStreamException($session, null, 0, $e));
-                    $handled = true;
-                }
-            }
-
-            if (!$handled) {
-                throw $e;
-            }
-
+        } catch (TypeError | ValueError $e) {
+            $this->seekBlame($e);
             return;
         }
 
@@ -183,5 +168,31 @@ final class NativeIpcPeer extends IpcPeer
                 $session->dispatch($m);
             }
         }
+    }
+
+    /**
+     * @template T of Throwable
+     * @param T&Throwable $e
+     * @return void
+     * @throws T
+     */
+    private function seekBlame(Throwable $e): void
+    {
+        foreach ($this->fdMap as $key => [$session, $transport]) {
+            $stream = $this->readSet[$key] ?? null;
+            if ($stream === null) {
+                continue;
+            }
+            $test = [$stream];
+            $w = $ex = null;
+            try {
+                stream_select($test, $w, $ex, 0, 0);
+            } catch (TypeError | ValueError) {
+                $session->triggerException(new InvalidStreamException($session, null, 0, $e));
+                return;
+            }
+        }
+
+        throw $e;
     }
 }

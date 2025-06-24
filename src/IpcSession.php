@@ -27,7 +27,7 @@ final class IpcSession
     /** @var array<int, (callable(Message, IpcSession):(Message|null))> Pending request handlers, numerically indexed. */
     private array $requestHandlers = [];
 
-    /** @var array<int, callable(\Throwable, IpcSession): (void|false)> */
+    /** @var array<int, callable(Throwable, IpcSession): (void|false)> */
     private array $exceptionHandlers = [];
 
     /** @var array<string, Message> Pending responses, indexed by request ID */
@@ -116,7 +116,7 @@ final class IpcSession
             // No handler found
             $this->transport->send(new ResponseEnvelope(
                 $envelope->id,
-                new ErrorMessage('Unhandled request: '. $envelope->request::class)
+                new ErrorMessage('Unhandled request: ' . $envelope->request::class)
             ));
         } catch (StreamClosedException) {
             // Can't send response if stream is closed
@@ -228,7 +228,7 @@ final class IpcSession
     /**
      * Registers a handler for session level exceptions.
      *
-     * @param callable(\Throwable, IpcSession): (void|false) $handler false to prevent closing of the session.
+     * @param callable(Throwable, IpcSession): (void|false) $handler false to prevent closing of the session.
      */
     public function onException(callable $handler): void
     {
@@ -238,7 +238,7 @@ final class IpcSession
     /**
      * Removes a previously registered exception handler.
      *
-     * @param callable(\Throwable, IpcSession): (void|false) $handler
+     * @param callable(Throwable, IpcSession): (void|false) $handler
      */
     public function offException(callable $handler): void
     {
