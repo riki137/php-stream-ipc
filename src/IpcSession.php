@@ -27,6 +27,9 @@ final class IpcSession
     /** @var array<int, (callable(Message, IpcSession):(Message|null))> Pending request handlers, numerically indexed. */
     private array $requestHandlers = [];
 
+    /** @var array<int, callable(\Throwable, IpcSession): (void|false)> */
+    private array $exceptionHandlers = [];
+
     /** @var array<string, Message> Pending responses, indexed by request ID */
     private array $responses = [];
 
@@ -219,6 +222,49 @@ final class IpcSession
                 unset($this->requestHandlers[$i]);
                 break;
             }
+        }
+    }
+
+    /**
+     * Registers a handler for session level exceptions.
+     *
+     * @param callable(\Throwable, IpcSession): (void|false) $handler false to prevent closing of the session.
+     */
+    public function onException(callable $handler): void
+    {
+        $this->exceptionHandlers[] = $handler;
+    }
+
+    /**
+     * Removes a previously registered exception handler.
+     *
+     * @param callable(\Throwable, IpcSession): (void|false) $handler
+     */
+    public function offException(callable $handler): void
+    {
+        foreach ($this->exceptionHandlers as $i => $h) {
+            if ($h === $handler) {
+                unset($this->exceptionHandlers[$i]);
+                break;
+            }
+        }
+    }
+
+    /**
+     * Triggers all registered exception handlers and closes the session.
+     */
+    public function triggerException(Throwable $e): void
+    {
+        $close = true;
+        foreach ($this->exceptionHandlers as $handler) {
+            if ($handler($e, $this) === false) {
+                // If any handler returns false, we do not close the session
+                $close = false;
+            }
+        }
+
+        if ($close) {
+            $this->close();
         }
     }
 

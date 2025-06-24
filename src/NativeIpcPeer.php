@@ -153,6 +153,7 @@ final class NativeIpcPeer extends IpcPeer
                 return;
             }
         } catch (TypeError|ValueError $e) {
+            $handled = false;
             foreach ($this->readSet as $key => $stream) {
                 $test = [$stream];
                 $w = $ex = null;
@@ -160,11 +161,16 @@ final class NativeIpcPeer extends IpcPeer
                     stream_select($test, $w, $ex, 0, 0);
                 } catch (TypeError|ValueError) {
                     [$session] = $this->fdMap[$key];
-                    throw new InvalidStreamException($session, null, 0, $e);
+                    $session->triggerException(new InvalidStreamException($session, null, 0, $e));
+                    $handled = true;
                 }
             }
 
-            throw $e;
+            if (!$handled) {
+                throw $e;
+            }
+
+            return;
         }
 
         foreach ($reads as $stream) {
