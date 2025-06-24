@@ -216,4 +216,38 @@ final class IpcSessionTest extends TestCase
 
         $this->assertNull($session->popResponse($id));
     }
+
+    public function testOffExceptionRemovesHandler(): void
+    {
+        $peer = new TestPeer();
+        $transport = new FakeTransport();
+        $session = $peer->createFakeSession($transport);
+
+        $count = 0;
+        $handler = function () use (&$count) { $count++; };
+        $session->onException($handler);
+        $session->offException($handler);
+
+        $session->triggerException(new \RuntimeException('boom'));
+
+        $this->assertSame(0, $count);
+    }
+
+    public function testTriggerExceptionCallsHandlersAndClosesSession(): void
+    {
+        $peer = new TestPeer();
+        $transport = new FakeTransport();
+        $session = $peer->createFakeSession($transport);
+
+        $called = 0;
+        $session->onException(function () use (&$called) { $called++; });
+
+        $session->triggerException(new \RuntimeException('fail'));
+
+        $this->assertSame(1, $called);
+
+        $prop = new \ReflectionProperty($peer, 'sessions');
+        $prop->setAccessible(true);
+        $this->assertSame([], $prop->getValue($peer));
+    }
 }
