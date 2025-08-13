@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [1.0.0] - 2025-08-13
+Seems stable to me! Runs in production for a while now.
+
 ## [1.0.0-beta6] - 2025-06-24
 ### Added
 - exception handling support to IpcSession
@@ -35,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial beta release of the PHP Stream IPC library
 
-[Unreleased]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta6...main
+[Unreleased]: https://github.com/riki137/php-stream-ipc/compare/1.0.0...main
+[1.0.0]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta6...1.0.0
 [1.0.0-beta6]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta5...1.0.0-beta6
 [1.0.0-beta5]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta4...1.0.0-beta5
 [1.0.0-beta4]: https://github.com/riki137/php-stream-ipc/compare/1.0.0-beta3...1.0.0-beta4
